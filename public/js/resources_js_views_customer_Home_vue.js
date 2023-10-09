@@ -562,7 +562,7 @@ function _toPrimitive(input, hint) { if (_typeof(input) !== "object" || input ==
       getDashboardSumary: {}
     };
   },
-  computed: _objectSpread(_objectSpread({}, (0,vuex__WEBPACK_IMPORTED_MODULE_9__.mapState)(["userDashboardSumary", "stebleCurency", "myUserProfile", "myBalances", "cryptoIntradayStockHistoryData", "suportedCurrencies", "supportedCurrenciesExchangeRates"])), (0,vuex__WEBPACK_IMPORTED_MODULE_9__.mapGetters)(["getUserDashboardSumary", "myUserProfile", "messageAlert", "getMyBalances", "getStebleCurency", "getCryptoIntradayStockHistoryData", "getSuportedCurrencies", "getSupportedCurrenciesExchangeRates"])),
+  computed: _objectSpread(_objectSpread({}, (0,vuex__WEBPACK_IMPORTED_MODULE_9__.mapState)(["userDashboardSumary", "stebleCurency", "myUserProfile", "myBalances", "suportedCurrencies", "supportedCurrenciesExchangeRates"])), (0,vuex__WEBPACK_IMPORTED_MODULE_9__.mapGetters)(["getUserDashboardSumary", "myUserProfile", "messageAlert", "getMyBalances", "getStebleCurency", "getSuportedCurrencies", "getSupportedCurrenciesExchangeRates"])),
   watch: {
     messageAlert: function messageAlert(val) {
       if (val != null) {
@@ -584,7 +584,6 @@ function _toPrimitive(input, hint) { if (_typeof(input) !== "object" || input ==
     this.$store.dispatch("getMyProfile");
     this.$store.dispatch("getMyBalances");
     this.$store.dispatch("loadStebleCurency");
-    this.$store.dispatch("get_my_crypto_address_info");
     this.$store.dispatch("fetchSupportedCurrencies");
     this.$store.dispatch("fetchSupportedCurrenciesExchangeRates");
   },
@@ -594,7 +593,6 @@ function _toPrimitive(input, hint) { if (_typeof(input) !== "object" || input ==
       this.$store.dispatch("getMyProfile");
       this.$store.dispatch("getMyBalances");
       this.$store.dispatch("loadStebleCurency");
-      this.$store.dispatch("get_my_crypto_address_info");
       this.$store.dispatch("fetchSupportedCurrencies");
       this.$store.dispatch("fetchSupportedCurrenciesExchangeRates");
     },

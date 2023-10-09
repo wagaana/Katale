@@ -11,7 +11,6 @@ import systenUsers from './modules/systenUsers'
 import Templates from './modules/Templates'
 import marketingCampaings from './modules/marketingCampaings'
 import servicePoints from './modules/servicePoints'
-import cryptoAsset from './modules/cryptoAsset'
 
 Vue.use( Vuex )
 
@@ -83,6 +82,5 @@ export default new Vuex.Store( {
         Templates,
         marketingCampaings,
         servicePoints,
-        cryptoAsset,
     }
 } )

@@ -21,8 +21,6 @@ use App\Http\Controllers\BalancesController;
 use App\Http\Controllers\MtnMomoController;
 use App\Http\Controllers\BanksController;
 use App\Http\Controllers\API\AuthController;
-use App\Http\Controllers\BlockIOController;
-use App\Http\Controllers\AlphaVantageController;
 use App\Http\Controllers\AirtelMoneyController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\BusinessApiController;
@@ -216,29 +214,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('updateBankCurrencyTariffConfig', [BanksController::class, 'updateBankCurrencyTariffConfig']);
     Route::post('updateBankCurrencyTariff', [BanksController::class, 'updateBankCurrencyTariff']);
     Route::get('fetchBankCurrencyTariffPlan', [BanksController::class, 'fetchBankCurrencyTariffPlan']);
-
-    //blockIO
-    Route::get('get_crypto_assets', [BlockIOController::class, 'get_crypto_assets']);
-    Route::get('get_balance', [BlockIOController::class, 'get_balance']);
-    Route::get('get_address_balance/{addresses}', [BlockIOController::class, 'get_address_balance']);
-    Route::get('get_crypto_asset_info/{wallet}', [BlockIOController::class, 'get_crypto_asset_info']);
-    Route::get('get_my_crypto_address_info/{wallet}', [BlockIOController::class, 'get_my_crypto_address_info']);
-    Route::get('is_valid_address/{address_label}', [BlockIOController::class, 'is_valid_address']);
-    Route::get('get_my_addresses', [BlockIOController::class, 'get_my_addresses']);
-    Route::get('get_address_by_label/{label}', [BlockIOController::class, 'get_address_by_label']);
-    Route::get('create_new_crypto_wallet/{cryptoWalletCode}', [BlockIOController::class, 'create_new_crypto_wallet']);
-    Route::put('prepare_user_transaction/{cryptoWalletCode}', [BlockIOController::class, 'prepare_user_transaction']);
-    Route::post('summarize_prepared_transaction', [BlockIOController::class, 'summarize_prepared_transaction']);
-    Route::post('submit_transaction/{cryptoWalletCode}', [BlockIOController::class, 'submit_transaction']);
-    Route::post('addnewCryptoAsset', [BlockIOController::class, 'addnewCryptoAsset']);
-    Route::get('get_transactions/{cryptoWalletCode}', [BlockIOController::class, 'get_transactions']);
-
-    //Alpha Vantage
-    Route::get('getCryptoExchangeRates/{wallet}', [AlphaVantageController::class, 'getCryptoExchangeRates']);
-    Route::get('getCryptoIntradayStockHistoryData/{wallet}', [AlphaVantageController::class, 'getCryptoIntradayStockHistoryData']);
-    Route::get('getCryptoDailyStockHistoryData/{wallet}', [AlphaVantageController::class, 'getCryptoDailyStockHistoryData']);
-    Route::get('getCryptoWeeklyStockHistoryData/{wallet}', [AlphaVantageController::class, 'getCryptoWeeklyStockHistoryData']);
-    Route::get('getCryptoMothlyStockHistoryData/{wallet}', [AlphaVantageController::class, 'getCryptoMothlyStockHistoryData']);
 
     //applications
     Route::post('submitApplication', [ApplicationController::class, 'submitApplication']);

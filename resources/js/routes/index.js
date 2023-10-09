@@ -50,10 +50,6 @@ export default [ {
         path: "/admin/paymentMethod",
         component: () => import( "../views/dashboard/PaymentMethod.vue" ),
         beforeEnter: AdminAuthRequired,
-    }, {
-        path: "/admin/cryptoAssets",
-        component: () => import( "../views/dashboard/CryptoAssets.vue" ),
-        beforeEnter: AdminAuthRequired,
     },
     {
         path: '/admin/marketingCampaigns/createTemplate',

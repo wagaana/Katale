@@ -272,7 +272,6 @@ export default {
       "stebleCurency",
       "myUserProfile",
       "myBalances",
-      "cryptoIntradayStockHistoryData",
       "suportedCurrencies",
       "supportedCurrenciesExchangeRates",
     ]),
@@ -282,7 +281,6 @@ export default {
       "messageAlert",
       "getMyBalances",
       "getStebleCurency",
-      "getCryptoIntradayStockHistoryData",
       "getSuportedCurrencies",
       "getSupportedCurrenciesExchangeRates",
     ]),
@@ -310,7 +308,6 @@ export default {
     this.$store.dispatch("getMyProfile");
     this.$store.dispatch("getMyBalances");
     this.$store.dispatch("loadStebleCurency");
-    this.$store.dispatch("get_my_crypto_address_info");
     this.$store.dispatch("fetchSupportedCurrencies");
     this.$store.dispatch("fetchSupportedCurrenciesExchangeRates");
   },
@@ -322,7 +319,6 @@ export default {
       this.$store.dispatch("getMyProfile");
       this.$store.dispatch("getMyBalances");
       this.$store.dispatch("loadStebleCurency");
-      this.$store.dispatch("get_my_crypto_address_info");
       this.$store.dispatch("fetchSupportedCurrencies");
       this.$store.dispatch("fetchSupportedCurrenciesExchangeRates");
     },

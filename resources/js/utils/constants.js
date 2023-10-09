@@ -141,16 +141,12 @@ export const loadBankCurencyDetails = '/api/loadBankCurencyDetails/'
 export const deleteActiveBankCurrency = '/api/deleteActiveBankCurrency'
 export const updateBankConfig = '/api/updateBankConfig'
 export const updateBankLocationConfig = '/api/updateBankLocationConfig'
-export const get_crypto_assets = '/api/get_crypto_assets'
-export const addnewCryptoAsset = '/api/addnewCryptoAsset'
 export const saveUserAvator = '/api/saveUserAvator'
 export const uploadUserCoverPhoto = '/api/uploadUserCoverPhoto'
 export const updateUserProfileValue = '/api/updateUserProfileValue'
 export const submitApplication = '/api/submitApplication'
 export const loadMyApplications = '/api/loadMyApplications'
 export const resetApiKey = '/api/resetApiKey'
-export const get_my_crypto_address_info = '/api/get_my_crypto_address_info/'
-export const getCryptoIntradayStockHistoryData = '/api/getCryptoIntradayStockHistoryData/'
 export const getRequestToPayRequest = '/api/getRequestToPayRequest/'
 export const payWithMyWallet = '/api/payWithMyWallet'
 export const payWithPaymentGateway = '/api/payWithPaymentGateway'
@@ -205,11 +201,6 @@ export const mainMenuItems = [ {
     icon: "mdi-currency-usd",
 },
 {
-    title: "Crypto Assets",
-    href: "/admin/cryptoAssets",
-    icon: "mdi-currency-btc",
-},
-{
     title: "Suported Banks",
     href: "/admin/suportedBanks",
     icon: "mdi-database-settings-outline",
@@ -224,23 +215,6 @@ export const mainMenuItems = [ {
     href: "/admin/settings",
     icon: "mdi-cog"
 },
-];
-
-export const cryptoAssetsData = [ {
-    code: "BLOCK_BITCOIN",
-    title: "Bitcoin",
-    currencyCode: "BTC"
-},
-{
-    code: "BLOCK_LITECOIN",
-    title: "Litecoin",
-    currencyCode: "LTC"
-},
-{
-    code: "BLOCK_DOGECOIN",
-    title: "Dogecoin",
-    currencyCode: "DOGE"
-}
 ];
 
 export const languages_options = [ {
