@@ -5,8 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\UserLocation;
+use App\Models\UserPlace;
 use App\Http\Controllers\CampaignsController;
 use Illuminate\Support\Facades\DB;
+use App\Models\File;
+
+use Illuminate\Support\Facades\Http;
+
 
 class UsersController extends Controller
 {
@@ -64,6 +69,81 @@ class UsersController extends Controller
     }
 
 
+    public static function getUserPlaceDetails($place_id)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $url = 'https://maps.googleapis.com/maps/api/place/details/json?placeid=' . $place_id . '&key=' . env('GOOGLE_MAPS_API_KEY');
+
+        if (UserPlace::where('place_id', $place_id)->exists()) {
+
+            if (UserPlace::where('user_id', $userId)->where('place_id', $place_id)->exists()) {
+                return array(
+                    'status' => 200,
+                    'data' => UserPlace::where('user_id', $userId)->where('place_id', $place_id)->first(),
+                    'message' => 'OK'
+                );
+            }
+
+            $mUserPlace = UserPlace::where('place_id', $place_id)->first();
+
+            $userPlace = new UserPlace;
+            $userPlace->user_id = $userId;
+            $userPlace->name = $mUserPlace->name;
+            $userPlace->place_id = $mUserPlace->place_id;
+            $userPlace->latitude = $mUserPlace->latitude;
+            $userPlace->longitude = $mUserPlace->longitude;
+            $userPlace->address = $mUserPlace->address;
+            $userPlace->save();
+
+            return array(
+                'status' => 200,
+                'data' =>  $mUserPlace,
+                'message' => 'OK'
+            );
+        }
+
+        $response = json_decode(file_get_contents($url), true);
+
+        $result = $response['result'];
+        $geometry = $result['geometry'];
+        $location = $geometry['location'];
+
+        $latitude = $location['lat'];
+        $longitude = $location['lng'];
+        $formatted_address = $result['formatted_address'];
+        $name = $result['name'];
+
+        $userPlace = new UserPlace;
+        $userPlace->user_id = $userId;
+        $userPlace->name = $name;
+        $userPlace->place_id = $place_id;
+        $userPlace->latitude = $latitude;
+        $userPlace->longitude = $longitude;
+        $userPlace->address = $formatted_address;
+        $userPlace->save();
+
+        return array(
+            'status' => 200,
+            'data' => $userPlace,
+            'message' => 'OK'
+        );
+    }
+
+    public static function getUserPlaces()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $userPlaces = UserPlace::where('user_id', $userId)->orderByRaw('id DESC LIMIT 25')->get();
+        return array(
+            'status' => 200,
+            'data' => $userPlaces,
+            'message' => 'OK'
+        );
+    }
+
     public static function getAdminUsers()
     {
         return User::where('level', 2)->get();
@@ -73,6 +153,21 @@ class UsersController extends Controller
     public static function getSelectedUserProfile($userId)
     {
         return User::where('id', $userId)->first();
+    }
+
+    public static function getUserProfile()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        User::where('id', $userId)
+            ->update([
+                'last_seen' => now() . '',
+            ]);
+
+        return User::where('users.id', $userId)
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+            ->first(['users.*', 'currencies.code AS currency']);
     }
 
     public static function getUserProfileByUserName($user_name)
@@ -110,35 +205,22 @@ class UsersController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
-        $path = $request->file('image')->store('storage/images', ['disk' => 'exchange']);
+        $fileId = $request->input('fileId');
 
-        if (isset($path)) {
-            $result = DB::table('users')
-                ->where(['id' => $userId])
-                ->update([
-                    'profile_picture' => $path,
-                    'last_seen' => now() . '',
-                ]);
-
-            if (!$result) {
-                return array(
-                    'status' => 500,
-                    'message' => 'File could not be saved.'
-                );
-            } else {
-                return array(
-                    'status' => 200,
-                    'imageName' => $path,
-                    'message' => 'File uploaded complete.'
-                );
-            }
-        } else {
-            return array(
-                'status' => 500,
-                'response' => $path,
-                'message' => 'Please try again later.'
-            );
+        if (!File::where('user_id', $userId)->where('id', $fileId)->exists()) {
+            return response()->json(array(
+                'status' => 401,
+                'message' => 'File was not discoverd.'
+            ), 401);
         }
+
+        User::where('id', $userId)
+            ->update(['profile_picture' => getFileLink(File::where('user_id', $userId)->where('id', $fileId)->first()), 'profile_picture_file_id' => $fileId]);
+
+        return response()->json(array(
+            'status' => 200,
+            'message' => 'OK'
+        ), 200);
     }
 
     public function uploadUserCoverPhoto(Request $request)
@@ -146,35 +228,22 @@ class UsersController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
-        $path = $request->file('image')->store('storage/images', ['disk' => 'exchange']);
+        $fileId = $request->input('fileId');
 
-        if (isset($path)) {
-            $result = DB::table('users')
-                ->where(['id' => $userId])
-                ->update([
-                    'cover_picture' => $path,
-                    'last_seen' => now() . '',
-                ]);
-
-            if (!$result) {
-                return array(
-                    'status' => 500,
-                    'message' => 'File could not be saved.'
-                );
-            } else {
-                return array(
-                    'status' => 200,
-                    'imageName' => $path,
-                    'message' => 'File uploaded complete.'
-                );
-            }
-        } else {
-            return array(
-                'status' => 500,
-                'response' => $path,
-                'message' => 'Please try again later.'
-            );
+        if (!File::where('user_id', $userId)->where('id', $fileId)->exists()) {
+            return response()->json(array(
+                'status' => 401,
+                'message' => 'File was not discoverd.'
+            ), 401);
         }
+
+        User::where('id', $userId)
+            ->update(['cover_picture' => getFileLink(File::where('user_id', $userId)->where('id', $fileId)->first()), 'cover_picture_file_id' => $fileId]);
+
+        return response()->json(array(
+            'status' => 200,
+            'message' => 'OK'
+        ), 200);
     }
 
     public function updateUserAddress(Request $request)

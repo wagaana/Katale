@@ -95,7 +95,7 @@ class BalancesController extends Controller
             ->join('users', 'transactions.userId', '=', 'users.id')
             ->join('payment_methods', 'transactions.provider', '=', 'payment_methods.code')
             ->select('balaces.*', 'payment_methods.label', 'payment_methods.image', 'users.name', 'transactions.status', 'transactions.userId AS transactionOwner', 'transactions.recieverId', 'transactions.provider', 'transactions.transactionKey')
-            ->orderByRaw('created_at DESC LIMIT 8')
+            ->orderByRaw('created_at DESC LIMIT 5')
             ->get();
 
         return array(

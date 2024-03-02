@@ -164,6 +164,66 @@ export const sendServicePointGalleryImage = '/api/sendServicePointGalleryImage';
 export const loadDashboardSumary = '/api/loadDashboardSumary';
 export const fetchDashboardSparklineData = '/api/fetchDashboardSparklineData';
 
+export const uploadMultiple = '/api/uploadMultiple';
+export const loadUserFiles = '/api/loadUserFiles';
+export const deleteFile = '/api/deleteFile/';
+
+export const submitShopingCategory = '/api/submitShopingCategory';
+export const loadShopingCategories = '/api/loadShopingCategories';
+export const deleteShopingCategory = '/api/deleteShopingCategory/';
+export const submitShopingBrand = '/api/submitShopingBrand';
+export const loadShopingBrands = '/api/loadShopingBrands';
+export const deleteShopingBrand = '/api/deleteShopingBrand/';
+export const submitShopingAttributeSet = '/api/submitShopingAttributeSet';
+export const loadShopingAttributeSets = '/api/loadShopingAttributeSets';
+export const deleteShopingAttributeSet = '/api/deleteShopingAttributeSet/';
+export const submitSpecification = '/api/submitSpecification';
+export const loadSpecifications = '/api/loadSpecifications';
+export const deleteSpecification = '/api/deleteSpecification/';
+
+export const submitProduct = '/api/submitProduct';
+export const loadProducts = '/api/loadProducts';
+export const loadProductDetails = '/api/loadProductDetails/';
+export const deleteProduct = '/api/deleteProduct/';
+export const submitProductPhoto = '/api/submitProductPhoto';
+export const deleteProductPhoto = '/api/deleteProductPhoto';
+export const submitShopingProductAttributeOption = '/api/submitShopingProductAttributeOption';
+export const loadProductAttributes = '/api/loadProductAttributes/';
+export const deleteProductAttribute = '/api/deleteProductAttribute/';
+export const submitShopingProductSpecification = '/api/submitShopingProductSpecification';
+export const loadShopingProductSpecifications = '/api/loadShopingProductSpecifications/';
+export const submitShoppingProductDiscussion = '/api/submitShoppingProductDiscussion'
+export const getShoppingProductDiscussions = '/api/getShoppingProductDiscussions/'
+export const submitShoppingProductDiscussionReply = '/api/submitShoppingProductDiscussionReply'
+export const fetchShoppingProductDiscussionReplyDetails = '/api/fetchShoppingProductDiscussionReplyDetails/'
+export const switchProduuctFeaturedStatus = '/api/switchProduuctFeaturedStatus';
+export const getShoppingCategory = '/api/getShoppingCategory/'
+export const getShopingSubCategories = '/api/getShopingSubCategories/'
+export const loadCategoryProducts = '/api/loadCategoryProducts/'
+export const switchCategoryFeaturedStatus = '/api/switchCategoryFeaturedStatus';
+
+export const submitCollectionPoint = '/api/submitCollectionPoint';
+export const sendCollectionPointGalleryImage = '/api/sendCollectionPointGalleryImage';
+export const fetchAllCollectionPoints = '/api/fetchAllCollectionPoints';
+export const fetchCollectionPointDetails = '/api/fetchCollectionPointDetails/';
+export const fetchCollectionPointAdmins = '/api/fetchCollectionPointAdmins/';
+export const fetchNearestCollectionPoints = '/api/fetchNearestCollectionPoints';
+export const fetchNearestCollectionPoint = '/api/fetchNearestCollectionPoint';
+export const getShoppingCollectionPointGallery = '/api/getShoppingCollectionPointGallery/';
+export const submitSliderImage = '/api/submitSliderImage';
+export const fetchSliderImages = '/api/fetchSliderImages';
+export const deleteSliderImage = '/api/deleteSliderImage/';
+export const submitCamaignsBanner = '/api/submitCamaignsBanner';
+export const fetchCamaignsBanner = '/api/fetchCamaignsBanner';
+export const submitState = '/api/submitState'
+export const fetchStates = '/api/fetchStates'
+export const deleteState = '/api/deleteState/'
+export const submitCity = '/api/submitCity'
+export const fetchCities = '/api/fetchCities'
+export const deleteCity = '/api/deleteCity/'
+export const submitPackageType = '/api/submitPackageType'
+export const deletePackageType = '/api/deletePackageType/'
+export const loadPackageTypes = '/api/loadPackageTypes'
 
 export const mainMenuItems = [ {
     title: "Home",
@@ -189,6 +249,16 @@ export const mainMenuItems = [ {
     title: "Translations",
     href: "/admin/translations",
     icon: "mdi-translate",
+},
+{
+    title: "Shopping",
+    href: "/admin/shopping",
+    icon: "mdi-shopping"
+},
+{
+    title: "Files & Media",
+    href: "/admin/files",
+    icon: "mdi-file",
 },
 {
     title: "Promo Codes",

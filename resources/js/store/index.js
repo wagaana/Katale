@@ -11,6 +11,8 @@ import systenUsers from './modules/systenUsers'
 import Templates from './modules/Templates'
 import marketingCampaings from './modules/marketingCampaings'
 import servicePoints from './modules/servicePoints'
+import files from './modules/files'
+import marketplce from './modules/marketplce'
 
 Vue.use( Vuex )
 
@@ -82,5 +84,7 @@ export default new Vuex.Store( {
         Templates,
         marketingCampaings,
         servicePoints,
+        files,
+        marketplce
     }
 } )

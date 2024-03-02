@@ -10,6 +10,8 @@ use App\Models\Message;
 use App\Models\ChatMember;
 use App\Models\MessageContact;
 use App\Models\MessageLocation;
+use App\Models\File;
+use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 
 class FriendsController extends Controller
@@ -37,18 +39,10 @@ class FriendsController extends Controller
 
     public function getChatID($senderId, $recieverId)
     {
-        $timestamp = round(microtime(true) * 1000);
-
-        $data = Chat::where(function ($query) use ($senderId, $recieverId) {
-            $query->where('recieverId', $senderId)
-                ->where('senderId', $recieverId);
-        })->orWhere(function ($query) use ($senderId, $recieverId) {
-            $query->where('recieverId', $recieverId)
-                ->where('senderId', $senderId);
-        })->get();
+        $data = collect(DB::select("SELECT * FROM chats WHERE ((recieverId = '$recieverId' AND senderId = '$senderId') OR (recieverId = '$senderId' AND senderId = '$recieverId'))"))->first();
 
         if (!isset($data->id)) {
-            $id = $senderId . '|' . $timestamp;
+            $id = $this->get_uuid();
             $chat = new Chat;
             $chat->id = $id;
             $chat->senderId = $senderId;
@@ -76,18 +70,10 @@ class FriendsController extends Controller
     {
         $user = auth()->user();
         $senderId = $user->id;
-        $timestamp = round(microtime(true) * 1000);
-
-        $data = Chat::where(function ($query) use ($senderId, $recieverId) {
-            $query->where('recieverId', $senderId)
-                ->where('senderId', $recieverId);
-        })->orWhere(function ($query) use ($senderId, $recieverId) {
-            $query->where('recieverId', $recieverId)
-                ->where('senderId', $senderId);
-        })->get();
+        $data = collect(DB::select("SELECT * FROM chats WHERE ((recieverId = '$recieverId' AND senderId = '$senderId') OR (recieverId = '$senderId' AND senderId = '$recieverId'))"))->first();
 
         if (!isset($data->id)) {
-            $id = $senderId . '|' . $timestamp;
+            $id = $this->get_uuid();
             $chat = new Chat;
             $chat->id = $id;
             $chat->senderId = $senderId;
@@ -260,11 +246,13 @@ class FriendsController extends Controller
     {
         $user = auth()->user();
         $userId = $user->id;
+
         $ip_address = User::getClientIP();
         $contentType = $request->input('contentType');
         $message = $request->input('message');
         $recieverId = $request->input('recieverId');
         $chatId = $request->input('chatId');
+
         return $this->sendMessage($chatId, $contentType, $message, $ip_address, $recieverId, $userId);
     }
 
@@ -404,16 +392,49 @@ class FriendsController extends Controller
     {
         $user = auth()->user();
         $userId = $user->id;
+
+        $fileId = $request->input('fileId');
+        if (!File::where('user_id', $userId)->where('id', $fileId)->exists()) {
+            return response()->json(array(
+                'status' => 401,
+                'message' => 'File was not discoverd.'
+            ), 401);
+        }
+
         $ip_address = User::getClientIP();
         $contentType = $request->input('contentType');
         $recieverId = $request->input('recieverId');
         $chatId = $request->input('chatId');
 
-        //$name = $request->file('filename')->getClientOriginalName();
-        $path = $request->file('filename')->store('storage/images', ['disk' => 'exchange']);
+        $path =  getFileLink(File::where('user_id', $userId)->where('id', $fileId)->first());
 
         if (isset($path)) {
             return self::sendMessage($chatId, $contentType, $path, $ip_address, $recieverId, $userId);
+        } else {
+            return json_encode(array("status" => "false", "message" => "Failed!"));
+        }
+    }
+
+    public function sendProduct(Request $request)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $productId = $request->input('productId');
+        if (!Product::where('id', $productId)->exists()) {
+            return response()->json(array(
+                'status' => 401,
+                'message' => 'Product was not discoverd.'
+            ), 401);
+        }
+
+        $ip_address = User::getClientIP();
+        $contentType = $request->input('contentType');
+        $recieverId = $request->input('recieverId');
+        $chatId = $request->input('chatId');
+
+        if (isset($productId)) {
+            return self::sendMessage($chatId, $contentType, $productId, $ip_address, $recieverId, $userId);
         } else {
             return json_encode(array("status" => "false", "message" => "Failed!"));
         }
@@ -425,9 +446,9 @@ class FriendsController extends Controller
         $userId = $user->id;
 
         $data = DB::select("SELECT chats.senderId AS chatSenderId, messages.id, contentType,
-         messages.chatId, recordTime, message, messageType, status, messages.senderId, messages.recieverId, messages.deleted, isReply, replyMessageId, replyContentType, replyMessageHint, messages.created_at AS sentTime, deliverdTime, readTime, ip_address, messages.deleteTime,
+         messages.chatId, recordTime, message, messageType, messages.status, messages.senderId, messages.recieverId, messages.deleted, isReply, replyMessageId, replyContentType, replyMessageHint, messages.created_at AS sentTime, deliverdTime, readTime, ip_address, messages.deleteTime,
          users.id AS userId, phone, email, place_id, location_label, users.latitude, users.longitude,
-          name, company_description, company_email, company_phone, website, level, account_type,
+          users.name, company_description, company_email, company_phone, website, level, account_type,
            dob, gender, profile_picture, cover_picture, last_seen, about, wallet_balance,
             users.created_at AS joinDate, firstName,
         lastName,
@@ -469,10 +490,25 @@ class FriendsController extends Controller
         message_locations.address AS mAddress,
         message_locations.image AS mImage,
 
-        other_address FROM chats, messages, users, message_contacts, message_locations WHERE  message_contacts.id=(CASE
+        products.name AS product_name,
+        products.short_description AS product_short_description,
+        products.price AS product_price,
+        products.special_discount AS product_special_discount,
+        products.special_discount_type AS product_special_discount_type,
+        products.special_discount_start AS product_special_discount_start,
+        products.special_discount_end AS product_special_discount_end,
+        products.thumbnail AS product_thumbnail,
+        products.slug AS product_slug,
+
+        other_address FROM chats, messages, users, message_contacts, message_locations, products WHERE message_contacts.id=(CASE
                     WHEN messages.contentType='contact'
                         THEN messages.message
                     WHEN messages.contentType!='contact'
+                        THEN 1
+                END) AND  products.id=(CASE
+                    WHEN messages.contentType='product'
+                        THEN messages.message
+                    WHEN messages.contentType!='product'
                         THEN 1
                 END) AND  message_locations.id=(CASE
                     WHEN messages.contentType='location'
@@ -551,12 +587,12 @@ class FriendsController extends Controller
         WHERE chats.deleted='false' AND messages.deleted='false' AND chats.id=messages.chatId AND users.id=(SELECT 
         
                 CASE
-                    WHEN chatType!='SINGLE_CAST'
+                    WHEN chats.chatType!='SINGLE_CAST'
                         THEN chats.senderId
-                    WHEN senderId='$userId'
-                        THEN recieverId
-                    WHEN recieverId='$userId'
-                        THEN senderId
+                    WHEN messages.senderId='$userId'
+                        THEN messages.recieverId
+                    WHEN messages.recieverId='$userId'
+                        THEN messages.senderId
                 END
 
                 FROM messages messages2 WHERE messages2.id=messages.id)

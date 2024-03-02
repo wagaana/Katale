@@ -26,6 +26,8 @@ use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\BusinessApiController;
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\PaymentMethodTariffController;
+use App\Http\Controllers\FileUploadController;
+use App\Http\Controllers\MarketplceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,10 +67,11 @@ Route::post('forgot_password', [ForgotPasswordController::class, 'submitForgetPa
 Route::post('reset_password', [ForgotPasswordController::class, 'resetPassword']);
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
-
+    /*
     Route::get('/getUserProfile', function (Request $request) {
         return auth()->user();
-    });
+    });*/
+    Route::get('getUserProfile', [UsersController::class, 'getUserProfile']);
     Route::get('loadSystemUsers', [UsersController::class, 'loadSystemUsers']);
 
     // API route for logout user
@@ -76,12 +79,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('setNewPin', [AuthController::class, 'setNewPin']);
     Route::post('authenticatePin', [AuthController::class, 'authenticatePin']);
     Route::post('/change_password', [ResetPasswordController::class, 'change_password']);
-
-    Route::get('articles', [ArticleController::class, 'index']);
-    Route::get('articles/{id}', [ArticleController::class, 'show']);
-    Route::post('articles', [ArticleController::class, 'store']);
-    Route::put('articles/{id}', [ArticleController::class, 'update']);
-    Route::delete('articles/{id}', [ArticleController::class, 'destroy']);
 
     Route::post('createPaymentMethod', [PaymentMethodsController::class, 'createPaymentMethod']);
     Route::get('loadPaymentMethods', [PaymentMethodsController::class, 'loadPaymentMethods']);
@@ -173,6 +170,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('sendContact', [FriendsController::class, 'sendContact']);
     Route::post('sendLocation', [FriendsController::class, 'sendLocation']);
     Route::post('sendFile', [FriendsController::class, 'sendFile']);
+    Route::post('sendProduct', [FriendsController::class, 'sendProduct']);
     Route::get('fetchChatConversation/{chatId}', [FriendsController::class, 'fetchChatConversation']);
     Route::get('getChats', [FriendsController::class, 'getChats']);
     Route::put('blockUser/{friendId}', [FriendsController::class, 'blockUser']);
@@ -248,4 +246,138 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('updatePaymentMethodTariffConfig', [PaymentMethodTariffController::class, 'updatePaymentMethodTariffConfig']);
     Route::post('updatePaymentMethodCurrencyConfig', [PaymentMethodTariffController::class, 'updatePaymentMethodCurrencyConfig']);
     Route::get('fetchPaymentMethodCurrencyTariffPlan', [PaymentMethodTariffController::class, 'fetchPaymentMethodCurrencyTariffPlan']);
+
+    //files
+    Route::post('uploadSingle', [FileUploadController::class, 'uploadSingle']);
+    Route::post('uploadMultiple', [FileUploadController::class, 'uploadMultiple']);
+    Route::get('loadUserFiles', [FileUploadController::class, 'loadUserFiles']);
+    Route::delete('deleteFile/{fileId}', [FileUploadController::class, 'deleteFile']);
+
+    //shopping
+
+    /*client requests*/
+    Route::get('loadShopingFeaturedCategories', [MarketplceController::class, 'loadShopingFeaturedCategories']);
+    Route::get('loadShopingMainCategories', [MarketplceController::class, 'loadShopingMainCategories']);
+    Route::get('loadFeaturedProducts', [MarketplceController::class, 'loadFeaturedProducts']);
+    Route::get('loadRecommendedProducts', [MarketplceController::class, 'loadRecommendedProducts']);
+    Route::get('loadProductDetailsBySlug/{slug}', [MarketplceController::class, 'loadProductDetailsBySlug']);
+    Route::get('loadViewedProducts', [MarketplceController::class, 'loadViewedProducts']);
+    Route::post('addToWishlist', [MarketplceController::class, 'addToWishlist']);
+    Route::get('loadWishlist', [MarketplceController::class, 'loadWishlist']);
+    Route::post('addToCart', [MarketplceController::class, 'addToCart']);
+    Route::get('loadCartlist', [MarketplceController::class, 'loadCartlist']);
+    Route::post('incrementCartProductQty', [MarketplceController::class, 'incrementCartProductQty']);
+    Route::post('decrementCartProductQty', [MarketplceController::class, 'decrementCartProductQty']);
+    Route::get('loadCartPriceData', [MarketplceController::class, 'loadCartPriceData']);
+    Route::post('storeUserAddress', [MarketplceController::class, 'storeUserAddress']);
+    Route::get('fetchUserAddress', [MarketplceController::class, 'fetchUserAddress']);
+    Route::delete('deleteShippingAddresses/{addressId}', [MarketplceController::class, 'deleteShippingAddresses']);
+    Route::post('updateInvoiceShippingAddress', [MarketplceController::class, 'updateInvoiceShippingAddress']);
+    Route::post('createOrder', [MarketplceController::class, 'createOrder']);
+    Route::get('fetchOrderHistory', [MarketplceController::class, 'fetchOrderHistory']);
+    Route::get('fetchSellerOrderHistory', [MarketplceController::class, 'fetchSellerOrderHistory']);
+    Route::get('fetchUserOrderItems/{invoice_id}', [MarketplceController::class, 'fetchUserOrderItems']);
+    Route::get('fetchSellerOrderItems/{invoice_id}', [MarketplceController::class, 'fetchSellerOrderItems']);
+    Route::post('createSellerAccount', [MarketplceController::class, 'createSellerAccount']);
+    Route::get('loadMySellerAccount', [MarketplceController::class, 'loadMySellerAccount']);
+    Route::get('loadSellerAccountInfo/{seller_id}', [MarketplceController::class, 'loadSellerAccountInfo']);
+    Route::post('loadSellerProducts', [MarketplceController::class, 'loadSellerProducts']);
+    Route::post('updateShopIcon', [MarketplceController::class, 'updateShopIcon']);
+    Route::post('updateShopValue', [MarketplceController::class, 'updateShopValue']);
+    Route::post('updateShopIdentificationValue', [MarketplceController::class, 'updateShopIdentificationValue']);
+    Route::get('loadMyProductsCatalogue', [MarketplceController::class, 'loadMyProductsCatalogue']);
+    Route::post('submitProductUpdates', [MarketplceController::class, 'submitProductUpdates']);
+    Route::get('loadPackageTypes', [MarketplceController::class, 'loadPackageTypes']);
+    Route::post('submitDeliveryCompany', [MarketplceController::class, 'submitDeliveryCompany']);
+    Route::get('loadMyDeliveryCompany', [MarketplceController::class, 'loadMyDeliveryCompany']);
+    Route::get('loadDeliveryCompanyDetails/{delivery_company_id}', [MarketplceController::class, 'loadDeliveryCompanyDetails']);
+    Route::get('fetchCompanyDeliveryRoutes/{delivery_company_id}', [MarketplceController::class, 'fetchCompanyDeliveryRoutes']);
+    Route::post('updateDeliveryCompanyIcon', [MarketplceController::class, 'updateDeliveryCompanyIcon']);
+    Route::post('updateDeliveryCompanyValue', [MarketplceController::class, 'updateDeliveryCompanyValue']);
+    Route::post('updateDeliveryCompanyIdentificationValue', [MarketplceController::class, 'updateDeliveryCompanyIdentificationValue']);
+    Route::post('fetchDeliveryQuotations', [MarketplceController::class, 'fetchDeliveryQuotations']);
+    Route::post('submitCompanyDeliveryPoint', [MarketplceController::class, 'submitCompanyDeliveryPoint']);
+    Route::get('fetchUserCompanyDeliveryPoints', [MarketplceController::class, 'fetchUserCompanyDeliveryPoints']);
+    Route::delete('deleteCompanyDeliveryPoint/{pointId}', [MarketplceController::class, 'deleteCompanyDeliveryPoint']);
+    Route::post('updateProductPackagingConfig', [MarketplceController::class, 'updateProductPackagingConfig']);
+    Route::get('loadDefaultDeliveryAddress', [MarketplceController::class, 'loadDefaultDeliveryAddress']);
+    Route::get('updateUserDefaultDeliveryAddress/{addressId}', [MarketplceController::class, 'updateUserDefaultDeliveryAddress']);
+    Route::post('switchSellerProductFeaturedStatus', [MarketplceController::class, 'switchSellerProductFeaturedStatus']);
+
+    Route::post('submitCompanyDeliveryRoute', [MarketplceController::class, 'submitCompanyDeliveryRoute']);
+    Route::get('fetchUserCompanyDeliveryRoutes', [MarketplceController::class, 'fetchUserCompanyDeliveryRoutes']);
+    Route::delete('deleteCompanyDeliveryRoute/{destinationId}', [MarketplceController::class, 'deleteCompanyDeliveryRoute']);
+    Route::get('loadProductDeliveryQuotationBySlug/{slug}', [MarketplceController::class, 'loadProductDeliveryQuotationBySlug']);
+
+    Route::get('getUserPlaceDetails/{place_id}', [UsersController::class, 'getUserPlaceDetails']);
+    Route::get('getUserPlaces', [UsersController::class, 'getUserPlaces']);
+
+    /* server requests */
+    Route::post('submitShopingCategory', [MarketplceController::class, 'submitShopingCategory']);
+    Route::get('loadShopingCategories', [MarketplceController::class, 'loadShopingCategories']);
+    Route::delete('deleteShopingCategory/{categoryId}', [MarketplceController::class, 'deleteShopingCategory']);
+
+    Route::post('submitShopingBrand', [MarketplceController::class, 'submitShopingBrand']);
+    Route::get('loadShopingBrands', [MarketplceController::class, 'loadShopingBrands']);
+    Route::delete('deleteShopingBrand/{brandId}', [MarketplceController::class, 'deleteShopingBrand']);
+
+    Route::post('submitShopingAttributeSet', [MarketplceController::class, 'submitShopingAttributeSet']);
+    Route::get('loadShopingAttributeSets', [MarketplceController::class, 'loadShopingAttributeSets']);
+    Route::delete('deleteShopingAttributeSet/{attributeId}', [MarketplceController::class, 'deleteShopingAttributeSet']);
+
+    Route::post('submitSpecification', [MarketplceController::class, 'submitSpecification']);
+    Route::get('loadSpecifications', [MarketplceController::class, 'loadSpecifications']);
+    Route::get('loadProductCategorySpecifications/{productId}', [MarketplceController::class, 'loadProductCategorySpecifications']);
+    Route::delete('deleteSpecification/{specificationId}', [MarketplceController::class, 'deleteSpecification']);
+
+    Route::post('submitProduct', [MarketplceController::class, 'submitProduct']);
+    Route::get('loadProducts', [MarketplceController::class, 'loadProducts']);
+    Route::get('loadProductDetails/{productId}', [MarketplceController::class, 'loadProductDetails']);
+    Route::delete('deleteProduct/{productId}', [MarketplceController::class, 'deleteProduct']);
+    Route::post('submitProductPhoto', [MarketplceController::class, 'submitProductPhoto']);
+    Route::post('deleteProductPhoto', [MarketplceController::class, 'deleteProductPhoto']);
+    Route::post('submitShopingProductAttributeOption', [MarketplceController::class, 'submitShopingProductAttributeOption']);
+    Route::get('loadProductAttributes/{productId}', [MarketplceController::class, 'loadProductAttributes']);
+    Route::delete('deleteProductAttribute/{attributeId}', [MarketplceController::class, 'deleteProductAttribute']);
+    Route::post('submitShopingProductSpecification', [MarketplceController::class, 'submitShopingProductSpecification']);
+    Route::get('loadShopingProductSpecifications/{productId}', [MarketplceController::class, 'loadShopingProductSpecifications']);
+    Route::delete('deleteShopingProductSpecification/{specificationId}', [MarketplceController::class, 'deleteShopingProductSpecification']);
+
+    Route::post('submitShoppingProductDiscussion', [MarketplceController::class, 'submitShoppingProductDiscussion']);
+    Route::post('submitShoppingProductDiscussionReply', [MarketplceController::class, 'submitShoppingProductDiscussionReply']);
+    Route::get('getShoppingProductDiscussions/{productId}', [MarketplceController::class, 'getShoppingProductDiscussions']);
+    Route::get('getShoppingLastProductDiscussion/{productId}', [MarketplceController::class, 'getShoppingLastProductDiscussion']);
+    Route::get('fetchShoppingProductDiscussionDetails/{discussionId}', [MarketplceController::class, 'fetchShoppingProductDiscussionDetails']);
+    Route::get('getShoppingProductDiscussionReplies/{discussionId}', [MarketplceController::class, 'getShoppingProductDiscussionReplies']);
+    Route::get('fetchShoppingProductDiscussionReplyDetails/{replyId}', [MarketplceController::class, 'fetchShoppingProductDiscussionReplyDetails']);
+    Route::post('switchProduuctFeaturedStatus', [MarketplceController::class, 'switchProduuctFeaturedStatus']);
+    Route::get('getShoppingCategory/{categoryId}', [MarketplceController::class, 'getShoppingCategory']);
+    Route::get('getShopingSubCategories/{categoryId}', [MarketplceController::class, 'getShopingSubCategories']);
+    Route::get('loadCategoryProducts/{categoryId}', [MarketplceController::class, 'loadCategoryProducts']);
+    Route::post('switchCategoryFeaturedStatus', [MarketplceController::class, 'switchCategoryFeaturedStatus']);
+
+    Route::post('submitCollectionPoint', [MarketplceController::class, 'submitCollectionPoint']);
+    Route::post('sendCollectionPointGalleryImage', [MarketplceController::class, 'sendCollectionPointGalleryImage']);
+    Route::get('fetchAllCollectionPoints', [MarketplceController::class, 'fetchAllCollectionPoints']);
+    Route::get('fetchCollectionPointDetails/{collectionPointId}', [MarketplceController::class, 'fetchCollectionPointDetails']);
+    Route::get('fetchCollectionPointAdmins/{collectionPointId}', [MarketplceController::class, 'fetchCollectionPointAdmins']);
+    Route::post('fetchNearestCollectionPoints', [MarketplceController::class, 'fetchNearestCollectionPoints']);
+    Route::post('fetchNearestCollectionPoint', [MarketplceController::class, 'fetchNearestCollectionPoint']);
+    Route::get('getShoppingCollectionPointGallery/{collectionPointId}', [MarketplceController::class, 'getShoppingCollectionPointGallery']);
+    Route::post('submitSliderImage', [MarketplceController::class, 'submitSliderImage']);
+    Route::get('fetchSliderImages', [MarketplceController::class, 'fetchSliderImages']);
+    Route::delete('deleteSliderImage/{fileId}', [MarketplceController::class, 'deleteSliderImage']);
+    Route::post('submitCamaignsBanner', [MarketplceController::class, 'submitCamaignsBanner']);
+    Route::get('fetchCamaignsBanner', [MarketplceController::class, 'fetchCamaignsBanner']);
+    Route::post('submitState', [MarketplceController::class, 'submitState']);
+    Route::get('fetchStates', [MarketplceController::class, 'fetchStates']);
+    Route::get('getCountryStates/{countryId}', [MarketplceController::class, 'getCountryStates']);
+    Route::delete('deleteState/{stateId}', [MarketplceController::class, 'deleteState']);
+    Route::post('submitCity', [MarketplceController::class, 'submitCity']);
+    Route::get('fetchCities', [MarketplceController::class, 'fetchCities']);
+    Route::get('getStatecities/{stateId}', [MarketplceController::class, 'getStatecities']);
+    Route::delete('deleteCity/{cityId}', [MarketplceController::class, 'deleteCity']);
+
+    Route::post('submitPackageType', [MarketplceController::class, 'submitPackageType']);
+    Route::delete('deletePackageType/{packageTypeId}', [MarketplceController::class, 'deletePackageType']);
 });

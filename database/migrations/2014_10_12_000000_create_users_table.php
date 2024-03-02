@@ -53,8 +53,12 @@ class CreateUsersTable extends Migration
             $table->string('account_type')->nullable();
             $table->string('dob')->nullable();
             $table->string('gender')->nullable();
+
             $table->text('profile_picture')->nullable();
+            $table->bigInteger('profile_picture_file_id')->nullable();
             $table->text('cover_picture')->nullable();
+            $table->bigInteger('cover_picture_file_id')->nullable();
+
             $table->text('about')->nullable();
             $table->float('wallet_balance', 255, 2)->nullable();
             $table->float('outstanding_payments', 255, 2)->nullable();

@@ -16,6 +16,7 @@ class NotificationsController extends Controller
 
     /*notification keys*/
     public static $notification_key_new_delivery_request = "new_delivery_request";
+    public static $notification_key_new_shopping_product_comment_reply = "new_shopping_product_comment_reply";
 
     public function notifyAdmins($senderId, $notificationKey, $message, $iconUrl, $tocken)
     {
@@ -26,13 +27,13 @@ class NotificationsController extends Controller
         }
     }
 
-    public function saveNotification($senderId, $recieverId, $media, $notificationKey, $message, $iconUrl, $tocken)
+    public static function saveNotification($senderId, $recieverId, $media, $notificationKey, $message, $iconUrl = null, $tocken = null)
     {
         $timestamp = round(microtime(true) * 1000);
         $user = auth()->user();
         $userId = $user->id;
 
-        $id = $userId . '|' . $timestamp;
+        $id = self::get_uuid();
 
         $notification = new Notification;
         $notification->id = $id;

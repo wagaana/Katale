@@ -39,6 +39,108 @@ export default [ {
         component: () => import( "../views/dashboard/SuportedBanks.vue" ),
         beforeEnter: AdminAuthRequired,
     }, {
+        path: '/admin/shopping',
+        component: () => import( "../views/dashboard/Shopping.vue" ),
+        beforeEnter: AdminAuthRequired,
+        redirect: "/admin/shopping/requests",
+
+        children: [ {
+            path: '/admin/shopping/requests',
+            component: () => import( "../views/dashboard/shopping/Requests.vue" ),
+            beforeEnter: AdminAuthRequired,
+        }, {
+            path: '/admin/shopping/products',
+            component: () => import( "../views/dashboard/shopping/Products.vue" ),
+            beforeEnter: AdminAuthRequired,
+        }, {
+            path: '/admin/shopping/productsCategories',
+            component: () => import( "../views/dashboard/shopping/ProductsCategories.vue" ),
+            beforeEnter: AdminAuthRequired,
+        }, {
+            path: '/admin/shopping/brands',
+            component: () => import( "../views/dashboard/shopping/ProductsBrands.vue" ),
+            beforeEnter: AdminAuthRequired,
+        }, {
+            path: '/admin/shopping/attributes',
+            component: () => import( "../views/dashboard/shopping/ProductsAttributes.vue" ),
+            beforeEnter: AdminAuthRequired,
+        }, {
+            path: '/admin/shopping/specifications',
+            component: () => import( "../views/dashboard/shopping/Specifications.vue" ),
+            beforeEnter: AdminAuthRequired,
+        }, {
+            path: '/admin/shopping/sellers',
+            component: () => import( "../views/dashboard/shopping/ProductsCategories.vue" ),
+            beforeEnter: AdminAuthRequired,
+        }, {
+            path: '/admin/shopping/deliveryCompanies',
+            component: () => import( "../views/dashboard/shopping/DeliveryCompanies.vue" ),
+            beforeEnter: AdminAuthRequired,
+        }, {
+            path: '/admin/shopping/settings',
+            component: () => import( "../views/dashboard/shopping/Settings.vue" ),
+            beforeEnter: AdminAuthRequired,
+            redirect: "/admin/shopping/settings/generalSettings",
+
+            children: [ {
+                path: '/admin/shopping/settings/generalSettings',
+                component: () => import( "../views/dashboard/shopping/settings/GeneralSettings.vue" ),
+                beforeEnter: AdminAuthRequired,
+            }, {
+                path: '/admin/shopping/settings/collectionPoints',
+                component: () => import( "../views/dashboard/shopping/settings/CollectionPoints.vue" ),
+                beforeEnter: AdminAuthRequired,
+            }, {
+                path: '/admin/shopping/settings/createCollectionPoint',
+                component: () => import( "../views/dashboard/shopping/settings/CreateCollectionPoint.vue" ),
+                beforeEnter: AdminAuthRequired,
+            }, {
+                path: '/admin/shopping/settings/suportedCountries',
+                component: () => import( "../views/dashboard/shopping/settings/SuportedCountries.vue" ),
+                beforeEnter: AdminAuthRequired,
+            }, {
+                path: '/admin/shopping/settings/suportedRegions',
+                component: () => import( "../views/dashboard/shopping/settings/SuportedRegions.vue" ),
+                beforeEnter: AdminAuthRequired,
+            }, {
+                path: '/admin/shopping/settings/suportedCities',
+                component: () => import( "../views/dashboard/shopping/settings/SuportedCities.vue" ),
+                beforeEnter: AdminAuthRequired,
+            }, {
+                path: '/admin/shopping/settings/shippingConfiguration',
+                component: () => import( "../views/dashboard/shopping/settings/ShippingConfiguration.vue" ),
+                beforeEnter: AdminAuthRequired,
+            }, {
+                path: '/admin/shopping/settings/packageTypeOptions',
+                component: () => import( "../views/dashboard/shopping/settings/PackageTypeOptions.vue" ),
+                beforeEnter: AdminAuthRequired,
+            } ]
+        } ]
+    }, {
+        path: '/admin/shopping/settings/collectionPoints/:id',
+        component: () => import( "../views/dashboard/shopping/settings/CollectionPoint.vue" ),
+        beforeEnter: AdminAuthRequired,
+    }, {
+        path: '/admin/shopping/requests/:invoiceId',
+        component: () => import( "../views/dashboard/shopping/ShoppingRequest.vue" ),
+        beforeEnter: AdminAuthRequired,
+    }, {
+        path: '/admin/shopping/products/:id',
+        component: () => import( "../views/dashboard/shopping/ProductDetails.vue" ),
+        beforeEnter: AdminAuthRequired,
+    }, {
+        path: '/admin/shopping/productsCategories/:id',
+        component: () => import( "../views/dashboard/shopping/ProductsCategoryDetails.vue" ),
+        beforeEnter: AdminAuthRequired,
+    }, {
+        path: '/admin/shopping/createProduct',
+        component: () => import( "../views/dashboard/shopping/CreateProduct.vue" ),
+        beforeEnter: AdminAuthRequired,
+    }, {
+        path: "/admin/files",
+        component: () => import( "../views/dashboard/Files.vue" ),
+        beforeEnter: AdminAuthRequired,
+    }, {
         path: "/admin/suportedBanks/:code",
         component: () => import( "../views/dashboard/Bank.vue" ),
         beforeEnter: AdminAuthRequired,

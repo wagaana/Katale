@@ -117,8 +117,8 @@ class PaymentMethodsController extends Controller
     public static function fetchSupportedCurrenciesExchangeRates()
     {
         $user = auth()->user();
-        $userId = $user->id;
-        $data = Currency::where('country_code', '!=', $user->country)->orderByRaw('id DESC LIMIT 3')->get();
+        //$userId = $user->id;
+        //$data = Currency::where('country_code', '!=', $user->country)->orderByRaw('id DESC LIMIT 3')->get();
         $senderCurrency = Currency::where("country_code", $user->country)->first();
 
         // Retrieve the currencies and convert their exchange rates to the user's currency
@@ -309,8 +309,8 @@ class PaymentMethodsController extends Controller
     {
         $user = auth()->user();
         $userId = $user->id;
-        $userAccount = UsersController::getSelectedUserProfile($userId);
-        $result = Currency::where("country_code", $userAccount->country)->first();
+        //$userAccount = UsersController::getSelectedUserProfile($userId);
+        $result = Currency::where("country_code", $user->country)->first();
 
         $responseData =  array(
             'status' => 200,

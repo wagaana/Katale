@@ -387,6 +387,8 @@ export default {
             dispatch
         } )
         {
+            localStorage.removeItem( 'authData' )
+            /*
             commit( 'clearError' )
             commit( 'setProcessing', true )
 
@@ -427,6 +429,7 @@ export default {
                 {
                     console.log( error );
                 } );
+                */
         }
     }
 }

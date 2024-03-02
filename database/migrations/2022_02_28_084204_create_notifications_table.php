@@ -17,10 +17,10 @@ class CreateNotificationsTable extends Migration
             $table->string('id')->unique();
             $table->string('senderId');
             $table->string('recieverId');
-            $table->string('media')->unique();
+            $table->string('media');
             $table->string('status')->default('SENT');
             $table->bigInteger('tocken')->default(0);
-            $table->string('notificationKey')->unique();
+            $table->string('notificationKey');
             $table->text('message')->nullable();
             $table->text('iconUrl')->nullable();
             $table->string('deleted')->default('false');
