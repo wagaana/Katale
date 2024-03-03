@@ -14,6 +14,7 @@ class MessageLocationsSeeder extends Seeder
      */
     public function run()
     {
+        MessageLocation::truncate();
         MessageLocation::create([
             'id' => 1,
             'userId' => "1",

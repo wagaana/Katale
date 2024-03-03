@@ -14,6 +14,7 @@ class MessageContactsSeeder extends Seeder
      */
     public function run()
     {
+        MessageContact::truncate();
         MessageContact::create([
             'id' => 1,
         ]);
