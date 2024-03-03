@@ -20,6 +20,7 @@ class CreatePaymentMethodsTable extends Migration
             $table->text('description');
             $table->string('category');
             $table->text('image');
+            $table->bigInteger('image_id');
             $table->string('userId');
             $table->string('status');
             $table->string('country');

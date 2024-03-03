@@ -10,6 +10,7 @@ use App\Models\PaymentMethod;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Setting;
+use App\Models\File;
 use App\Models\PaymentMethodCurrency;
 use HTTP_Request2;
 use HTTP_Request2_Exception;
@@ -66,6 +67,8 @@ class PaymentMethodsController extends Controller
 
         for ($i = 0; $i < sizeof($result); $i++) {
             $currency = $result[$i];
+
+            //9cfacb02ea5d646aecec0f24e4a8c9e4
 
             $request = new HTTP_Request2();
             $request->setUrl('https://api.exchangerate.host/convert?from=' .  $currency->code . '&to=' . $currencySetting->setting_value);
@@ -178,11 +181,20 @@ class PaymentMethodsController extends Controller
 
     public function createPaymentMethod(Request $request)
     {
-        $name = $request->file('image')->getClientOriginalName();
-        $path = $request->file('image')->store('storage/images', ['disk' => 'exchange']);
-
         $user = auth()->user();
         $userId = $user->id;
+
+        $image_id = $request->input('image_id');
+
+        if (!File::where('user_id', $userId)->where('id', $image_id)->exists()) {
+            return response()->json(array(
+                'status' => 401,
+                'message' => 'File was not discoverd.'
+            ), 401);
+        }
+
+        $path = getFileLink(File::where('user_id', $userId)->where('id', $image_id)->first());
+
         $paymentMethod = new PaymentMethod;
         $paymentMethod->label = $request->input('label');
         $paymentMethod->country = $request->input('country');
@@ -193,6 +205,7 @@ class PaymentMethodsController extends Controller
         $paymentMethod->code = $request->input('code');
         $paymentMethod->userId = $userId;
         $paymentMethod->image = $path;
+        $paymentMethod->image_id = $image_id;
         $paymentMethod->status = 'ACTIVE';
         $paymentMethod->deleted = 'false';
         $paymentMethod->save();

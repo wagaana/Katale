@@ -19,6 +19,7 @@ class CreateBanksTable extends Migration
             $table->string('label');
             $table->text('description');
             $table->text('image');
+            $table->bigInteger('image_id');
             $table->string('userId');
             $table->string('country');
             $table->string('status')->default('ACTIVE');

@@ -193,12 +193,10 @@
                           dense
                         ></v-text-field>
 
-                        <v-file-input
-                          v-model="mPaymentMethod.image"
-                          label="Icon"
-                          :rules="[rules.required]"
-                          outlined
-                          dense
+                        <FilesEntry
+                          label="Payment Method Icon"
+                          @selectedFiles="selectedFiles"
+                          class="pa-2"
                         />
                       </v-form>
                     </v-card-text>
@@ -353,8 +351,12 @@
 import { mapGetters, mapMutations, mapActions, mapState } from "vuex";
 import Vue from "vue";
 import { uploads, languages_options } from "../../utils/constants";
+import FilesEntry from "../../components/FilesEntry.vue";
 
 export default {
+  components: {
+    FilesEntry: FilesEntry,
+  },
   data: () => ({
     uploads: uploads,
     languages_options: languages_options,
@@ -552,6 +554,10 @@ export default {
           "/" +
           activeCurrency.code,
       });
+    },
+
+    selectedFiles(file) {
+      this.mPaymentMethod.image_id = file.id;
     },
   },
 };

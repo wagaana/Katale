@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Bank;
 use App\Models\BankCurrency;
+use App\Models\File;
 use App\Models\BankCurrencyTariff;
 use Illuminate\Support\Facades\DB;
 
@@ -12,11 +13,20 @@ class BanksController extends Controller
 {
     public function createBank(Request $request)
     {
-        $name = $request->file('image')->getClientOriginalName();
-        $path = $request->file('image')->store('storage/images', ['disk' => 'exchange']);
-
         $user = auth()->user();
         $userId = $user->id;
+
+        $image_id = $request->input('image_id');
+
+        if (!File::where('user_id', $userId)->where('id', $image_id)->exists()) {
+            return response()->json(array(
+                'status' => 401,
+                'message' => 'File was not discoverd.'
+            ), 401);
+        }
+
+        $path = getFileLink(File::where('user_id', $userId)->where('id', $image_id)->first());
+
         $bank = new Bank;
         $bank->label = $request->input('label');
         $bank->country = $request->input('country');
@@ -24,6 +34,7 @@ class BanksController extends Controller
         $bank->code = $request->input('code');
         $bank->userId = $userId;
         $bank->image = $path;
+        $bank->image_id = $image_id;
         $bank->save();
 
         return array(

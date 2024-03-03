@@ -18,5 +18,6 @@ class DatabaseSeeder extends Seeder
         $this->call(MessageContactsSeeder::class);
         $this->call(SettingsSeeder::class);
         $this->call(CurrencySeeder::class);
+        $this->call(ProductSeeder::class);
     }
 }

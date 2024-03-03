@@ -260,7 +260,7 @@ class FriendsController extends Controller
     {
         $user = auth()->user();
         $userId = $user->id;
-        $message = round(microtime(true) * 1000) . $userId;
+        $message = $this->get_uuid();
         $ip_address = User::getClientIP();
         $contentType = $request->input('contentType');
         $recieverId = $request->input('recieverId');
@@ -354,7 +354,7 @@ class FriendsController extends Controller
     {
         $user = auth()->user();
         $userId = $user->id;
-        $message = round(microtime(true) * 1000) . $userId;
+        $message = $this->get_uuid();
         $ip_address = User::getClientIP();
         $contentType = $request->input('contentType');
         $recieverId = $request->input('recieverId');
@@ -366,8 +366,7 @@ class FriendsController extends Controller
 
         $map_photo_url = "http://maps.google.com/maps/api/staticmap?center=" . $latitude  . "," . $longitude . "&zoom=15&size=500x300" . "&maptype=roadmap" . "&markers=color:red%7Clabel:P%7C" . $latitude . "," . $longitude . "&sensor=false&key=" . env('GOOGLE_MAPS_API_KEY');
 
-        $milliseconds = round(microtime(true) * 1000);
-        $imageName = $milliseconds . "-" . $userId . ".png";
+        $imageName = $message . ".png";
 
         $image = file_get_contents($map_photo_url);
         $fp  = fopen($imageName, 'w+');
@@ -666,14 +665,13 @@ class FriendsController extends Controller
 
     public function createNewChatGroup(Request $request)
     {
-        $timestamp = round(microtime(true) * 1000);
         $user = auth()->user();
         $userId = $user->id;
 
         $label = $request->input('label');
         $description = $request->input('description');
 
-        $id = $userId . '|' . $timestamp;
+        $id = $this->get_uuid();
         $chat = new Chat;
         $chat->id = $id;
         $chat->senderId = $userId;
@@ -694,7 +692,6 @@ class FriendsController extends Controller
 
     public function getCustomerCareChatGroupId()
     {
-        $timestamp = round(microtime(true) * 1000);
         $user = auth()->user();
         $userId = $user->id;
 
@@ -710,7 +707,7 @@ class FriendsController extends Controller
             $logoUrl = "images/logo.png";
             $coverUrl = "images/default_cover.jpg";
 
-            $id = $userId . '|' . $timestamp;
+            $id = $this->get_uuid();
             $chat = new Chat;
             $chat->id = $id;
             $chat->senderId = $userId;
@@ -744,8 +741,6 @@ class FriendsController extends Controller
 
     public function getUserCustomerCareChatGroupId($userId)
     {
-        $timestamp = round(microtime(true) * 1000);
-
         $chat = DB::table('chats')
             ->where('senderId', $userId)
             ->where('chatType', 'CUSTOMER_SERVICE')
@@ -758,7 +753,7 @@ class FriendsController extends Controller
             $logoUrl = "images/logo.png";
             $coverUrl = "images/default_cover.jpg";
 
-            $id = $userId . '|' . $timestamp;
+            $id = $this->get_uuid();
             $chat = new Chat;
             $chat->id = $id;
             $chat->senderId = $userId;
