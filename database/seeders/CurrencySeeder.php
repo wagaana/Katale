@@ -15,13 +15,13 @@ class CurrencySeeder extends Seeder
     {
         Currency::truncate();
 
-        $settingsData = [
+        $currenciesData = [
             ["code" => "UGX", "name" => "Uganda Shilling", "entity" => "Uganda", "country_code" => "UG", "minorUnit" => "0", "userId" => "1"],
             ["code" => "KES", "name" => "Kenyan Shilling", "entity" => "Kenya", "country_code" => "KE", "minorUnit" => "2", "userId" => "1"],
             ["code" => "TZS", "name" => "Tanzanian Shilling", "entity" => "Tanzania, United Republic of Tanzania", "country_code" => "TZ", "minorUnit" => "2", "userId" => "1"],
             ["code" => "RWF", "name" => "Rwanda Franc", "entity" => "Rwanda", "country_code" => "RW", "minorUnit" => "0", "userId" => "1"],
         ];
-        collect($settingsData)->each(function ($settingData) {
+        collect($currenciesData)->each(function ($settingData) {
             Currency::create($settingData);
         });
     }

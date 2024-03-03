@@ -17,5 +17,6 @@ class DatabaseSeeder extends Seeder
         $this->call(MessageLocationsSeeder::class);
         $this->call(MessageContactsSeeder::class);
         $this->call(SettingsSeeder::class);
+        $this->call(CurrencySeeder::class);
     }
 }
