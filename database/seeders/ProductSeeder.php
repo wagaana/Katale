@@ -29,8 +29,8 @@ class ProductSeeder extends Seeder
         $product->price = 0;
         $product->special_discount = 0;
         $product->special_discount_type  = 'flat';
-        $product->special_discount_start = "2024-03-04 18:28:48)";
-        $product->special_discount_end  = "2024-03-04 18:28:48)";
+        $product->special_discount_start = "2024-03-04 18:28:48";
+        $product->special_discount_end  = "2024-03-04 18:28:48";
         $product->purchase_cost = "0";
 
         $product->minimum_order_quantity = 1;
