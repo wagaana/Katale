@@ -2516,7 +2516,7 @@ class MarketplceController extends Controller
             'city_id'       => 'required',
             'postal_code'   => 'required',
             'address'       => 'required',
-            'unit_apt'      => 'unit_apt',
+            'unit_apt'      => 'required',
             'latitude'      => 'required',
             'longitude'     => 'required',
         ]);
