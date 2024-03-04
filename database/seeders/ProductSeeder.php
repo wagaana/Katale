@@ -46,7 +46,6 @@ class ProductSeeder extends Seeder
         $product->selected_variants = '[]';
         $product->selected_variants_ids = '[]';
         $product->images = [];
-        $product->description_images = '[]';
         $product->status = "unpublished";
 
         $product->save();

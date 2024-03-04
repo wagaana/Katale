@@ -322,7 +322,6 @@ class MarketplceController extends Controller
         $product->selected_variants = '[]';
         $product->selected_variants_ids = '[]';
         $product->images = [];
-        $product->description_images = '[]';
 
         $product->save();
 
