@@ -2457,22 +2457,7 @@ class MarketplceController extends Controller
                 DB::raw('MAX(carts.order_quantity) as order_quantity'),
                 DB::raw('MAX(carts.attributes) as cart_attributes'),
                 DB::raw('MAX(carts.id) as cart_id')
-            ]);*/
-
-        $products = Cart::where('carts.user_id', $userId)
-            ->join('products', 'products.id', '=', 'carts.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
-            ->groupBy('carts.product_id')
-            ->orderByDesc(DB::raw('MAX(carts.created_at)'))
-            ->get([
-                'products.*',
-                'users.user_name',
-                DB::raw('MAX(carts.order_quantity) as order_quantity'),
-                DB::raw('MAX(carts.attributes) as cart_attributes'),
-                DB::raw('MAX(carts.id) as cart_id')
             ]);
-
-
 
 
         // Loop through the grouped products
@@ -2480,7 +2465,7 @@ class MarketplceController extends Controller
             // Additional logic for each group...
             $coupon_discount = 0;
             $CouponDiscountTotal += $coupon_discount;
-        }
+        }*/
         $CouponDiscountTotal = $CouponDiscountTotal * $converted_exchange_rate;
 
         $billingAddress = Address::join('states', 'addresses.state_id', '=', 'states.id')
