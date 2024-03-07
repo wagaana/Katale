@@ -2887,6 +2887,7 @@ class MarketplceController extends Controller
             array_push($formatedProducts, $product);
         }
 
+        /*
         $products = Cart::where('carts.user_id', $userId)
             ->join('products', 'products.id', '=', 'carts.product_id')
             ->join('users', 'products.user_id', '=', 'users.id')
@@ -2907,6 +2908,7 @@ class MarketplceController extends Controller
             $coupon_discount = 0;
             $CouponDiscountTotal += $coupon_discount;
         }
+        */
         $CouponDiscountTotal = $CouponDiscountTotal * $converted_exchange_rate;
 
         $billingAddress = Address::join('states', 'addresses.state_id', '=', 'states.id')
