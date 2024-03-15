@@ -333,6 +333,22 @@ class PaymentMethodsController extends Controller
         return response()->json($responseData, 200);
     }
 
+    public static function loadSystemCurency()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+        $currencySetting = Setting::where('setting_name', 'currency')->first();
+
+        $result = Currency::where("code", $currencySetting->setting_value)->first();
+
+        $responseData =  array(
+            'status' => 200,
+            'data' => $result,
+            'message' => 'OK'
+        );
+        return response()->json($responseData, 200);
+    }
+
     public function loadCurencyDetails($code)
     {
         $result = Currency::where("code", $code)->first();

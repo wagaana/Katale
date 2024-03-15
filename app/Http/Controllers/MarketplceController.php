@@ -32,6 +32,9 @@ use App\Models\DeliveryCompany;
 use App\Models\CompanyDeliveryPoint;
 use App\Models\CompanyDeliveryRoute;
 use App\Models\Currency;
+use App\Models\Voucher;
+use App\Models\Advert;
+use App\Models\Transaction;
 
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\UsersController;
@@ -40,6 +43,7 @@ use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class MarketplceController extends Controller
 {
@@ -4729,6 +4733,345 @@ class MarketplceController extends Controller
         return response()->json(array(
             'status' => 200,
             'data' => $formatedProducts,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function submitSellerVoucher(Request $request)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $validator = Validator::make($request->all(), [
+            'fileId'                => 'required',
+            'title'                 => 'required',
+            'usage_limit'           => 'required',
+            'limit_per_customer'    => 'required',
+            'price'                 => 'required',
+            'min_spend'             => 'required',
+            'code'                  => 'required',
+            'start_time'            => 'required',
+            'end_time'              => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(array(
+                'status' => 422,
+                'message' => 'Required field missing'
+            ), 422);
+        }
+
+        $fileId = $request->input('fileId');
+
+        if (!File::where('user_id', $userId)->where('id', $fileId)->exists()) {
+            return response()->json(array(
+                'status' => 401,
+                'message' => 'File was not discoverd.'
+            ), 401);
+        }
+
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        $voucher = new Voucher;
+        $voucher->user_id = $userId;
+        $voucher->title = $request->input('title');
+        $voucher->voucher_type = "seller";
+        $voucher->usage_limit = $request->input('usage_limit');
+        $voucher->limit_per_customer = $request->input('limit_per_customer');
+        $voucher->price = $request->input('price');
+        $voucher->min_spend = $request->input('min_spend');
+        $voucher->capped_price = $request->input('capped_price');
+
+        $voucher->code = $request->input('code');
+        $voucher->start_time = $request->input('start_time');
+        $voucher->end_time = $request->input('end_time');
+        $voucher->thumbnail = getFileLink(File::where('user_id', $userId)->where('id', $fileId)->first());
+        $voucher->thumbnail_id = $fileId;
+        $voucher->save();
+
+        return response()->json(array(
+            'data' => $voucher,
+            'message' => 'OK',
+            'status' => 200
+        ), 200);
+    }
+
+    public function loadSellerVouchers()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        $data = Voucher::where('vouchers.user_id', $userId)
+            ->where('vouchers.status', '!=', 'trash')
+            ->join('users', 'vouchers.user_id', '=', 'users.id')
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+            ->get(['vouchers.*', 'currencies.code AS currency']);
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $data,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function updateSellerVoucherPublishedStatus(Request $request)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $validator = Validator::make($request->all(), [
+            'voucher_id'                => 'required',
+            'is_published'              => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(array(
+                'status' => 422,
+                'message' => 'Required field missing'
+            ), 422);
+        }
+
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        if (!Voucher::where('user_id', $userId)->where('id', $request->input('voucher_id'))->where('voucher_type', 'seller')->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Voucher was not discoverd.'
+            ), 500);
+        }
+
+        $is_published = $request->input('is_published');
+        $data = Voucher::where('id', $request->input('voucher_id'))
+            ->update(['status'  => $is_published === true ? 'published' : 'unpublished']);
+
+        if ($data) {
+            return response()->json(array(
+                'status' => 200,
+                'message' => 'OK'
+            ), 200);
+        } else {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Something went wrong'
+            ), 500);
+        }
+    }
+
+    public function deleteSellerVoucher($voucher_id)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        if (!Voucher::where('user_id', $userId)->where('id', $voucher_id)->where('voucher_type', 'seller')->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Voucher was not discoverd.'
+            ), 500);
+        }
+
+        $data = Voucher::where('id', $voucher_id)->update(['status'  => 'trash']);
+
+        if ($data) {
+            return response()->json(array(
+                'status' => 200,
+                'message' => 'OK'
+            ), 200);
+        } else {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Something went wrong'
+            ), 500);
+        }
+    }
+
+    public function updateSellerVoucher(Request $request)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $validator = Validator::make($request->all(), [
+            'voucher_id'            => 'required',
+            'fileId'                => 'required',
+            'title'                 => 'required',
+            'usage_limit'           => 'required',
+            'limit_per_customer'    => 'required',
+            'price'                 => 'required',
+            'min_spend'             => 'required',
+            'code'                  => 'required',
+            'start_time'            => 'required',
+            'end_time'              => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(array(
+                'status' => 422,
+                'message' => 'Required field missing'
+            ), 422);
+        }
+
+        if (!Voucher::where('user_id', $userId)->where('id', $request->input('voucher_id'))->where('voucher_type', 'seller')->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Voucher was not discoverd.'
+            ), 500);
+        }
+
+        $fileId = $request->input('fileId');
+
+        if (!File::where('user_id', $userId)->where('id', $fileId)->exists()) {
+            return response()->json(array(
+                'status' => 401,
+                'message' => 'File was not discoverd.'
+            ), 401);
+        }
+
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        $data = Voucher::where('id', $request->input('voucher_id'))
+            ->update([
+                'title'  => $request->input('title'),
+                'usage_limit'  => $request->input('usage_limit'),
+                'limit_per_customer'  => $request->input('limit_per_customer'),
+                'price'  => $request->input('price'),
+                'min_spend'  => $request->input('min_spend'),
+                'capped_price'  => $request->input('capped_price'),
+                'code'  => $request->input('code'),
+                'start_time'  => $request->input('start_time'),
+                'end_time'  => $request->input('end_time'),
+                'thumbnail'  => getFileLink(File::where('user_id', $userId)->where('id', $fileId)->first()),
+                'thumbnail_id'  => $fileId,
+            ]);
+
+        return response()->json(array(
+            'data' => $data,
+            'message' => 'OK',
+            'status' => 200
+        ), 200);
+    }
+
+    public function loadGiftVouchers()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $data = Voucher::where('vouchers.status', 'published')
+            ->where('vouchers.system_status', 'approved')
+            ->join('users', 'vouchers.user_id', '=', 'users.id')
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+            ->get(['vouchers.*', 'currencies.code AS currency']);
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $data,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function submitSellerAdvert(Request $request)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $validator = Validator::make($request->all(), [
+            'budget'                 => 'required',
+            'primary_target'        => 'required',
+            'start_time'            => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(array(
+                'status' => 422,
+                'message' => 'Required field missing'
+            ), 422);
+        }
+
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        $seller = Seller::where('user_id', $userId)->first();
+
+        $advert = array();
+        if (!Advert::where('shop_id', $seller->id)->exists()) {
+            $advert = new Advert;
+            $advert->shop_id = $seller->id;
+            $advert->budget = $request->input('budget');
+            $advert->primary_target = $request->input('primary_target');
+            $advert->start_time = $request->input('start_time');
+            $advert->end_time = $request->input('end_time');
+            $advert->save();
+        } else {
+            $advert = Advert::where('shop_id', $seller->id)
+                ->update([
+                    'budget'  => $request->input('budget'),
+                    'primary_target'  => $request->input('primary_target'),
+                    'start_time'  => $request->input('start_time'),
+                    'end_time'  => $request->input('end_time'),
+                ]);
+        }
+
+        return response()->json(array(
+            'data' => $advert,
+            'message' => 'OK',
+            'status' => 200
+        ), 200);
+    }
+
+    public function loadSellerAdvert()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        $seller = Seller::where('user_id', $userId)->first();
+
+        $data = Advert::where('adverts.shop_id', $seller->id)
+            ->join('sellers', 'sellers.id', '=', 'adverts.shop_id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+            ->first(['adverts.*', 'currencies.code AS currency']);
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $data,
             'message' => 'OK'
         ), 200);
     }

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Transaction;
 use App\Models\BusinessApiRequest;
 use App\Models\Currency;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Hash;
 
 class TransactionController extends Controller
@@ -666,6 +667,103 @@ class TransactionController extends Controller
             $transaction->save();
 
             BalancesController::addSendMoneyTransaction($userId, $recieverId, $grossToCharge, $feeToCharge, $netToCharge, $netToSend, $transactionId, $senderCurrency->code, $recieverCurrency->code);
+
+            return response()->json(array(
+                'status' => 200,
+                'message' => 'OK',
+                'data' => array(
+                    'payment_method' => 'SYSTEM',
+                    'message' => 'We have sent you an email with our bank information.'
+                )
+            ), 200);
+        } else {
+            if ($netToCharge <= $feeToCharge) {
+                return response()->json(array(
+                    'status' => 421,
+                    'message' => 'Minimum Transaction should be above ' . $feeToCharge
+                ), 421);
+            } else {
+                return response()->json(array(
+                    'status' => 422,
+                    'message' => 'Insuficient Balance'
+                ), 422);
+            }
+        }
+    }
+
+    public function topupMarketingBalance(Request $request)
+    {
+        $user = auth()->user();
+        $decryptedData = $this->decryptData($request->data, $request->key, $request->iv);
+        $jsonDecryptedData = json_decode($decryptedData, true);
+
+        $isPinCorrect = Hash::check($jsonDecryptedData['pin'], $user->pin);
+
+        if (!$isPinCorrect) {
+            return response()->json(array(
+                'status' => 403,
+                'message' => 'Invalid PIN Provided',
+            ), 403);
+        }
+
+        $userId = $user->id;
+
+        $netToSend = $jsonDecryptedData['net'];
+
+        $accountBalance = BalancesController::getUserAccountBalance($userId);
+
+        $currencySetting = Setting::where('setting_name', 'currency')->first();
+
+        $recieverCurrency = Currency::where("code", $currencySetting->setting_value)->first();
+        $senderCurrency = Currency::where("country_code", $user->country)->first();
+
+        // Calculate exchange rate from sender's currency to UGX
+        $sender_to_ugx_exchange_rate = (1 / $senderCurrency->buy);
+
+        // Calculate exchange rate from UGX to receiver's currency
+        $ugx_to_receiver_exchange_rate = $recieverCurrency->sell;
+
+        // Calculate the overall exchange rate from sender's currency to receiver's currency
+        $exchange_rate = $sender_to_ugx_exchange_rate * $ugx_to_receiver_exchange_rate;
+
+        $fee = $senderCurrency->transactionFee + (($netToSend / 100) * $recieverCurrency->conversionChargePercentage);
+
+        // Calculate gross amount in the receiver's currency
+        $grossToCharge = ($netToSend - $fee) * $exchange_rate;
+
+        // Calculate gross amount in the sender's currency
+        $netToCharge = ($netToSend + $fee) * $exchange_rate;
+
+        // Calculate gross amount in the sender's currency
+        $feeToCharge = $fee * $exchange_rate;
+
+        // Use the receiver's currency code
+        $currency = $senderCurrency->code;
+
+        $milliseconds = round(microtime(true) * 1000);
+        $transactionId = $this->get_uuid();
+
+        if ($netToCharge <= $accountBalance && $netToCharge > $feeToCharge) {
+            $transaction = new Transaction;
+            $transaction->id = $transactionId;
+            $transaction->userId = $userId;
+            $transaction->recieverId = 0;
+            $transaction->gross = $grossToCharge;
+            $transaction->fee = $feeToCharge;
+            $transaction->net = $netToCharge;
+            $transaction->exchange_rate = $exchange_rate;
+            $transaction->senderCurrencyTxnFee = $recieverCurrency->transactionFee;
+            $transaction->conversionChargePercentage = $recieverCurrency->conversionChargePercentage;
+            $transaction->provider = 'SYSTEM';
+            $transaction->status = 'COMPLETED';
+            $transaction->requestId = $milliseconds;
+            $transaction->description = 'Shop advertising balance topup';
+            $transaction->transactionKey = 'TRANSFER';
+            $transaction->externalId = $milliseconds;
+            $transaction->currency = $currency;
+            $transaction->save();
+
+            BalancesController::addMonetToMarketingBalance($userId, $grossToCharge, $feeToCharge, $netToCharge, $netToSend, $transactionId, $senderCurrency->code);
 
             return response()->json(array(
                 'status' => 200,

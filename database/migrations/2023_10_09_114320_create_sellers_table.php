@@ -26,8 +26,13 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('website')->nullable();
             $table->string('address_id');
-            $table->string('rating_count')->default(0);
-            $table->string('reviews_count')->default(0);
+
+            $table->bigInteger('rating_count')->default(0);
+            $table->bigInteger('reviews_count')->default(0);
+            $table->bigInteger('sales_count')->default(0);
+
+            $table->bigInteger('pending_orders')->default(0);
+            $table->double('pending_balance', 255, 2)->default(0.00);
 
             $table->float('dimensional_divisor', 10, 6)->default(5000)->comment('Dimensional divisor is a standard number used to determine the dimensional weight of a package acording to its cubic cm');
             $table->string('express_delivery_enabled')->default('false');
@@ -40,6 +45,8 @@ return new class extends Migration
 
             $table->string('verified')->default('false');
             $table->dateTime('verified_at')->nullable();
+
+            $table->enum('status', ['unapproved', 'approved', 'suspended', 'removed'])->default('unapproved');
 
             $table->string('deleted')->default('false');
             $table->timestamp('deleteTime')->nullable();

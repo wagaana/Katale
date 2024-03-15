@@ -84,6 +84,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('loadPaymentMethods', [PaymentMethodsController::class, 'loadPaymentMethods']);
     Route::get('loadAllPaymentMethods', [PaymentMethodsController::class, 'loadAllPaymentMethods']);
     Route::get('loadStebleCurency', [PaymentMethodsController::class, 'loadStebleCurency']);
+    Route::get('loadSystemCurency', [PaymentMethodsController::class, 'loadSystemCurency']);
     Route::get('loadSendActivePaymentMethods', [PaymentMethodsController::class, 'loadSendActivePaymentMethods']);
     Route::post('addSuportedCountry', [PaymentMethodsController::class, 'addSuportedCountry']);
     Route::get('fetchSupportedCountries', [PaymentMethodsController::class, 'fetchSupportedCountries']);
@@ -120,6 +121,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('getUserAccountBalance/{userId}', [BalancesController::class, 'getUserAccountBalance']);
     Route::post('sendMoney', [TransactionController::class, 'sendMoney']);
     Route::post('cashOut', [TransactionController::class, 'cashOut']);
+    Route::post('topupMarketingBalance', [TransactionController::class, 'topupMarketingBalance']);
 
     //notifications
     Route::get('fetchUserNotifications', [NotificationsController::class, 'fetchUserNotifications']);
@@ -380,4 +382,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('submitPackageType', [MarketplceController::class, 'submitPackageType']);
     Route::delete('deletePackageType/{packageTypeId}', [MarketplceController::class, 'deletePackageType']);
+
+    Route::post('submitSellerVoucher', [MarketplceController::class, 'submitSellerVoucher']);
+    Route::get('loadSellerVouchers', [MarketplceController::class, 'loadSellerVouchers']);
+    Route::get('loadGiftVouchers', [MarketplceController::class, 'loadGiftVouchers']);
+    Route::post('updateSellerVoucherPublishedStatus', [MarketplceController::class, 'updateSellerVoucherPublishedStatus']);
+    Route::delete('deleteSellerVoucher/{voucher_id}', [MarketplceController::class, 'deleteSellerVoucher']);
+    Route::post('updateSellerVoucher', [MarketplceController::class, 'updateSellerVoucher']);
+
+    Route::post('submitSellerAdvert', [MarketplceController::class, 'submitSellerAdvert']);
+    Route::get('loadSellerAdvert', [MarketplceController::class, 'loadSellerAdvert']);
 });

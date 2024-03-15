@@ -21,6 +21,7 @@ class SettingsSeeder extends Seeder
             ["setting_name" => "company_email", "setting_value" => "info@nsiimbi.com", "type" => "app"],
             ["setting_name" => "company_phone", "setting_value" => "+256784801301", "type" => "app"],
             ["setting_name" => "currency", "setting_value" => "UGX", "type" => "app"],
+            ["setting_name" => "minimum_daily_advertising_fee", "setting_value" => "2000", "type" => "app"],
             ["setting_name" => "date_format", "setting_value" => "Y-m-d", "type" => "app"],
             ["setting_name" => "decimal_separator", "setting_value" => ".", "type" => "app"],
             ["setting_name" => "email_sent_from_address", "setting_value" => "info@nsiimbi.com", "type" => "app"],
