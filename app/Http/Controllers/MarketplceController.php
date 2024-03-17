@@ -3239,7 +3239,7 @@ class MarketplceController extends Controller
     {
         $user = auth()->user();
         $userId = $user->id;
-        /*
+
         $result = OrderItem::where('order_items.user_id', $userId)
             ->join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
             ->join('users', 'orders.user_id', '=', 'users.id')
@@ -3254,24 +3254,6 @@ class MarketplceController extends Controller
                 DB::raw('MAX(currencies.code) AS currency'),
                 DB::raw('SUM(order_items.order_quantity) as order_quantity'),
             ]);
-            */
-
-        $result = OrderItem::where('order_items.user_id', $userId)
-            ->join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
-            ->join('users', 'orders.user_id', '=', 'users.id')
-            ->join('currencies', 'users.country', '=', 'currencies.country_code')
-            ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
-            ->groupBy('order_items.invoice_id', 'orders.id', 'orders.user_id', 'orders.billing_address', 'orders.shipping_address', /* ... other non-aggregated fields from the orders table ... */)
-            ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
-            ->get([
-                'orders.*',
-                'users.user_name',
-                DB::raw('MAX(addresses.address) AS billing_address_label'),
-                DB::raw('MAX(currencies.code) AS currency'),
-                DB::raw('SUM(order_items.order_quantity) as order_quantity'),
-            ]);
-
-
 
         $data = array(
             'status' => 200,
@@ -3285,16 +3267,6 @@ class MarketplceController extends Controller
     {
         $user = auth()->user();
         $userId = $user->id;
-        /*
-        $result = Order::where('orders.user_id', $userId)
-            ->join('users', 'orders.user_id', '=', 'users.id')
-            ->join('currencies', 'users.country', '=', 'currencies.country_code')
-            ->orderBy('orders.created_at', 'desc')
-            ->get([
-                'orders.*',
-                'currencies.code AS currency',
-            ]);
-            */
 
         $result = OrderItem::where('order_items.user_id', $userId)
             ->join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
