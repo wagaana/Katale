@@ -3255,12 +3255,13 @@ class MarketplceController extends Controller
                 DB::raw('SUM(order_items.order_quantity) as order_quantity'),
             ]);
             */
+
         $result = OrderItem::where('order_items.user_id', $userId)
             ->join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
             ->join('users', 'orders.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
-            ->groupBy('order_items.invoice_id', 'orders.id', 'orders.user_id', 'orders.invoice_date', 'orders.billing_address', /* ... other non-aggregated fields from the orders table ... */)
+            ->groupBy('order_items.invoice_id', 'orders.id', 'orders.user_id', 'orders.invoice_date', 'orders.billing_address', 'orders.shipping_address', /* ... other non-aggregated fields from the orders table ... */)
             ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
             ->get([
                 'orders.*',
@@ -3269,6 +3270,7 @@ class MarketplceController extends Controller
                 DB::raw('MAX(currencies.code) AS currency'),
                 DB::raw('SUM(order_items.order_quantity) as order_quantity'),
             ]);
+
 
 
         $data = array(
