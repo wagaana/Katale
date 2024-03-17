@@ -3261,7 +3261,7 @@ class MarketplceController extends Controller
             ->join('users', 'orders.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
-            ->groupBy('order_items.invoice_id', 'orders.id', 'orders.user_id', 'orders.invoice_date', 'orders.billing_address', 'orders.shipping_address', /* ... other non-aggregated fields from the orders table ... */)
+            ->groupBy('order_items.invoice_id', 'orders.id', 'orders.user_id', 'orders.billing_address', 'orders.shipping_address', /* ... other non-aggregated fields from the orders table ... */)
             ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
             ->get([
                 'orders.*',
