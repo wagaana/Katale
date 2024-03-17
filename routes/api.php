@@ -277,7 +277,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('updateInvoiceShippingAddress', [MarketplceController::class, 'updateInvoiceShippingAddress']);
     Route::post('createOrder', [MarketplceController::class, 'createOrder']);
     Route::get('fetchOrderHistory', [MarketplceController::class, 'fetchOrderHistory']);
+    Route::get('fetchPendingOrders', [MarketplceController::class, 'fetchPendingOrders']);
     Route::get('fetchSellerOrderHistory', [MarketplceController::class, 'fetchSellerOrderHistory']);
+    Route::get('fetchSellerPendingOrders', [MarketplceController::class, 'fetchSellerPendingOrders']);
     Route::get('fetchUserOrderItems/{invoice_id}', [MarketplceController::class, 'fetchUserOrderItems']);
     Route::get('fetchSellerOrderItems/{invoice_id}', [MarketplceController::class, 'fetchSellerOrderItems']);
     Route::post('createSellerAccount', [MarketplceController::class, 'createSellerAccount']);

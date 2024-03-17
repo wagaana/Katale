@@ -36,6 +36,10 @@ class CreateUsersTable extends Migration
             $table->string('country')->nullable();
             $table->string('trackingEnabled')->nullable();
 
+            $table->bigInteger('pending_orders')->default(0)->comment('total orders not recieved yet');
+            $table->bigInteger('deliveries_from_me')->default(0)->comment('total deloveries from user they have not reached destinations yet');
+            $table->bigInteger('deliveries_to_me')->default(0)->comment('total displays deloveries to user they havent recieved yet');
+
             $table->string('address_label')->nullable();
             $table->string('address_country_code')->nullable();
             $table->string('address_country')->nullable();

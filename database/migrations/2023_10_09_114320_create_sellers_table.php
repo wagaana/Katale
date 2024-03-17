@@ -29,6 +29,7 @@ return new class extends Migration
 
             $table->bigInteger('rating_count')->default(0);
             $table->bigInteger('reviews_count')->default(0);
+            $table->bigInteger('impressions')->default(0)->comment('total displays of the products or store');
             $table->bigInteger('sales_count')->default(0);
 
             $table->bigInteger('pending_orders')->default(0);

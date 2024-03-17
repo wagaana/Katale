@@ -19,11 +19,15 @@ return new class extends Migration
             $table->bigInteger('delivery_hero_id')->nullable()->comment('from delivery hero table');
             $table->longText('billing_address');
             $table->longText('shipping_address')->nullable();
+
             $table->string('delivery_status')->default('pending');
             $table->string('payment_type');
             $table->string('payment_method')->nullable();
             $table->string('mobilemoney_phone')->nullable();
+
             $table->string('payment_status')->default('unpaid');
+            $table->tinyInteger('payment_status_viewed')->default(0);
+
             $table->longText('payment_details')->nullable();
             $table->double('sub_total')->nullable();
             $table->double('discount')->nullable();
@@ -34,12 +38,13 @@ return new class extends Migration
             $table->double('total_payable')->nullable();
             $table->string('code')->nullable();
             $table->timestamp('date')->nullable();
+
             $table->tinyInteger('viewed')->default(0);
             $table->tinyInteger('delivery_viewed')->default(0);
-            $table->tinyInteger('payment_status_viewed')->default(0);
             $table->tinyInteger('commission_calculated')->default(0);
             $table->string('is_cancelled')->default('0');
             $table->string('is_deleted')->default('0');
+
             $table->string('trx_id')->nullable();
             $table->tinyInteger('is_mailed')->default(0);
             $table->string('offline_method_id')->nullable();

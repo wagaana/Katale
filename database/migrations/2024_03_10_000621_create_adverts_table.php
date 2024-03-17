@@ -23,6 +23,10 @@ return new class extends Migration
             ]);
             $table->timestamp('start_time');
             $table->timestamp('end_time')->nullable();
+
+            $table->bigInteger('today_impressions')->default(0)->comment('total displays of the products or store');
+            $table->bigInteger('today_sales')->default(0);
+
             $table->timestamps();
         });
     }

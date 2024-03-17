@@ -3273,6 +3273,44 @@ class MarketplceController extends Controller
         return response()->json($data, 200);
     }
 
+    public function fetchPendingOrders()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+        /*
+        $result = Order::where('orders.user_id', $userId)
+            ->join('users', 'orders.user_id', '=', 'users.id')
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+            ->orderBy('orders.created_at', 'desc')
+            ->get([
+                'orders.*',
+                'currencies.code AS currency',
+            ]);
+            */
+
+        $result = OrderItem::where('order_items.user_id', $userId)
+            ->join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
+            ->join('users', 'orders.user_id', '=', 'users.id')
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+            ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
+            ->groupBy('order_items.invoice_id')
+            ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
+            ->get([
+                'orders.*',
+                'users.user_name',
+                DB::raw('MAX(addresses.address) AS billing_address_label'),
+                DB::raw('MAX(currencies.code) AS currency'),
+                DB::raw('SUM(order_items.order_quantity) as order_quantity'),
+            ]);
+
+        $data = array(
+            'status' => 200,
+            'data' => $result,
+            'message' => 'OK'
+        );
+        return response()->json($data, 200);
+    }
+
     public function fetchUserOrderItems($invoice_id)
     {
         $user = auth()->user();
@@ -3389,6 +3427,35 @@ class MarketplceController extends Controller
     }
 
     public function fetchSellerOrderHistory()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $result = OrderItem::join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->join('users', 'orders.user_id', '=', 'users.id')
+            ->where('products.user_id', $userId)
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+            ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
+            ->groupBy('order_items.invoice_id')
+            ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
+            ->get([
+                'orders.*',
+                'users.user_name',
+                DB::raw('MAX(addresses.address) AS billing_address_label'),
+                DB::raw('MAX(currencies.code) AS currency'),
+                DB::raw('SUM(order_items.order_quantity) as order_quantity'),
+            ]);
+
+        $data = array(
+            'status' => 200,
+            'data' => $result,
+            'message' => 'OK'
+        );
+        return response()->json($data, 200);
+    }
+
+    public function fetchSellerPendingOrders()
     {
         $user = auth()->user();
         $userId = $user->id;

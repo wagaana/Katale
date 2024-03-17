@@ -30,6 +30,11 @@ return new class extends Migration
             $table->enum('delivery_type', ['route', 'seller', 'express'])->nullable();
             $table->string('delivery_company_id')->nullable();
 
+            $table->string('seller_payment_status')->default('unpaid');
+            $table->string('delivery_payment_status')->default('unpaid');
+            $table->tinyInteger('seller_payment_status_viewed')->default(0);
+            $table->tinyInteger('delivery_payment_status_viewed')->default(0);
+
             $table->text('delivery_address');
             $table->string('delivery_address_id')->nullable();
             $table->string('delivery_country_id')->nullable();
