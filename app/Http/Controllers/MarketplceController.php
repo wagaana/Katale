@@ -3431,6 +3431,7 @@ class MarketplceController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
+        /*
         $result = OrderItem::join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
             ->join('products', 'products.id', '=', 'order_items.product_id')
             ->join('users', 'orders.user_id', '=', 'users.id')
@@ -3445,7 +3446,24 @@ class MarketplceController extends Controller
                 DB::raw('MAX(addresses.address) AS billing_address_label'),
                 DB::raw('MAX(currencies.code) AS currency'),
                 DB::raw('SUM(order_items.order_quantity) as order_quantity'),
+            ]);*/
+
+        $result = OrderItem::join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->join('users', 'orders.user_id', '=', 'users.id')
+            ->where('products.user_id', $userId)
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+            ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
+            ->groupBy('order_items.invoice_id', 'orders.id', 'users.id', 'users.user_name', 'addresses.id', 'currencies.country_code')
+            ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
+            ->get([
+                'orders.*',
+                'users.user_name',
+                DB::raw('MAX(addresses.address) AS billing_address_label'),
+                DB::raw('MAX(currencies.code) AS currency'),
+                DB::raw('SUM(order_items.order_quantity) as order_quantity'),
             ]);
+
 
         $data = array(
             'status' => 200,
