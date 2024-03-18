@@ -63,36 +63,62 @@ class PaymentMethodsController extends Controller
     {
         $currencySetting = Setting::where('setting_name', 'currency')->first();
 
-        $result = Currency::get();
-
-        for ($i = 0; $i < sizeof($result); $i++) {
-            $currency = $result[$i];
-
-            //9cfacb02ea5d646aecec0f24e4a8c9e4
-
+        $exchange_rate = 0;
+        try {
+            $exchangeUrl = 'https://query1.finance.yahoo.com/v7/finance/spark?symbols=USD' .  $currencySetting->setting_value . '%3DX';
             $request = new HTTP_Request2();
-            $request->setUrl('https://api.exchangerate.host/convert?from=' .  $currency->code . '&to=' . $currencySetting->setting_value);
+            $request->setUrl($exchangeUrl);
             $request->setMethod(HTTP_Request2::METHOD_GET);
             $request->setConfig(array(
                 'follow_redirects' => TRUE
             ));
-            try {
-                $response = $request->send();
-                if ($response->getStatus() == 200) {
-                    $rate =  json_decode($response->getBody(), true)["result"];
 
-                    if ($rate != $currency->exchange_rate) {
-                        $currency->exchange_rate = $rate;
-                        $currency->buy = $rate - (($rate / 100) * $currency->bidAskPercentageBuy);
-                        $currency->sell = $rate + (($rate / 100) * $currency->bidAskPercentageSell);
-                        $currency->save();
+            $response = $request->send();
+            if ($response->getStatus() == 200) {
+                $exchange_rate =  json_decode($response->getBody(), true)["spark"]["result"][0]["response"][0]["meta"]["regularMarketPrice"];
+            } else {
+                echo 'Unexpected HTTP status: ' . $response->getStatus() . ' ' .
+                    $response->getReasonPhrase();
+            }
+        } catch (HTTP_Request2_Exception $e) {
+            echo 'Error: ' . $e->getMessage();
+        }
+
+        if ($exchange_rate != 0) {
+            $result = Currency::get();
+
+            for ($i = 0; $i < sizeof($result); $i++) {
+                $currency = $result[$i];
+
+                $exchangeUrl = 'https://query1.finance.yahoo.com/v7/finance/spark?symbols=USD' .  $currency->code . '%3DX';
+
+                $request = new HTTP_Request2();
+                $request->setUrl($exchangeUrl);
+                $request->setMethod(HTTP_Request2::METHOD_GET);
+                $request->setConfig(array(
+                    'follow_redirects' => TRUE
+                ));
+                try {
+                    $response = $request->send();
+                    if ($response->getStatus() == 200) {
+                        //spark/result/0/response/0/meta/regularMarketPrice
+                        $rateInUsd =  json_decode($response->getBody(), true)["spark"]["result"][0]["response"][0]["meta"]["regularMarketPrice"];
+
+                        $rate =  round((1 / $rateInUsd) * $exchange_rate, 2);
+
+                        if ($rate != $currency->exchange_rate) {
+                            $currency->exchange_rate = $rate;
+                            $currency->buy = round($rate - (($rate / 100) * $currency->bidAskPercentageBuy), 2);
+                            $currency->sell = round($rate + (($rate / 100) * $currency->bidAskPercentageSell), 2);
+                            $currency->save();
+                        }
+                    } else {
+                        echo 'Unexpected HTTP status: ' . $response->getStatus() . ' ' .
+                            $response->getReasonPhrase();
                     }
-                } else {
-                    echo 'Unexpected HTTP status: ' . $response->getStatus() . ' ' .
-                        $response->getReasonPhrase();
+                } catch (HTTP_Request2_Exception $e) {
+                    echo 'Error: ' . $e->getMessage();
                 }
-            } catch (HTTP_Request2_Exception $e) {
-                echo 'Error: ' . $e->getMessage();
             }
         }
     }
