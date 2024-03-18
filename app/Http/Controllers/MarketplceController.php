@@ -643,7 +643,7 @@ class MarketplceController extends Controller
                         $deliveryQuotation['distance'] = $distance;
                         $deliveryQuotation['depature_city'] = $addressFrom->city;
                         $deliveryQuotation['destination_city'] = $addressTo->city;
-                        $deliveryQuotation['company_name'] = $addressFrom->shop_name;
+                        $deliveryQuotation['delivery_company_name'] = $addressFrom->shop_name;
 
                         $deliveryQuotation['depature_addr_id'] = $addressFrom->addr_id;
                         $deliveryQuotation['delivery_address_id'] = $addressTo->id;
@@ -669,6 +669,7 @@ class MarketplceController extends Controller
                         $deliveryQuotation['deliveryTime'] = '1-3 Days';
                         $deliveryQuotation['delivery_type'] = 'route';
                         $deliveryQuotation['weight'] = $weight;
+                        $deliveryQuotation['delivery_company_name'] = $deliveryQuotation['company_name'];
                         $deliveryQuotation['pkgDeliveryFee'] = $deliveryQuotation->deliveryFeePerKg * $deliveryQuotation['weight'];
                         $deliveryQuotation['pkgDeliveryFee'] = $deliveryQuotation['pkgDeliveryFee'] < $deliveryQuotation->minDeliveryFee ? $deliveryQuotation->minDeliveryFee : $deliveryQuotation['pkgDeliveryFee'];
 
