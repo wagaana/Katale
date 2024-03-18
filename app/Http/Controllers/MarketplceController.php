@@ -399,6 +399,11 @@ class MarketplceController extends Controller
             $product['category'] = Category::where('id', $product->category_id)->first();
             $product['brand'] = Brand::where('id', $product->brand_id)->first();
 
+            try {
+                //$product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
+
             array_push($formatedProducts, $product);
         }
 
@@ -455,6 +460,11 @@ class MarketplceController extends Controller
             $product['category'] = Category::where('id', $product->category_id)->first();
             $product['brand'] = Brand::where('id', $product->brand_id)->first();
 
+            try {
+                //$product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
+
             array_push($formatedProducts, $product);
         }
 
@@ -509,6 +519,11 @@ class MarketplceController extends Controller
 
             $product['category'] = Category::where('id', $product->category_id)->first();
             $product['brand'] = Brand::where('id', $product->brand_id)->first();
+
+            try {
+                //$product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
 
             array_push($formatedProducts, $product);
         }
@@ -1769,6 +1784,11 @@ class MarketplceController extends Controller
                 ->orderBy('product_specifications.id', 'desc')
                 ->get(['product_specifications.*', 'specifications.title']);
 
+            try {
+                //$product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
+
             array_push($formatedProducts, $product);
         }
 
@@ -1846,6 +1866,11 @@ class MarketplceController extends Controller
                 ->join('specifications', 'product_specifications.specificationId', '=', 'specifications.id')
                 ->orderBy('product_specifications.id', 'desc')
                 ->get(['product_specifications.*', 'specifications.title']);
+
+            try {
+                //$product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
 
             array_push($formatedProducts, $product);
         }
@@ -2159,6 +2184,11 @@ class MarketplceController extends Controller
                 ->orderBy('product_specifications.id', 'desc')
                 ->get(['product_specifications.*', 'specifications.title']);
 
+            try {
+                //$product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
+
             array_push($formatedProducts, $product);
         }
 
@@ -2446,6 +2476,12 @@ class MarketplceController extends Controller
             $VatTaxTotal = $VatTaxTotal * $converted_exchange_rate;
             $DiscountTotal = $DiscountTotal * $converted_exchange_rate;
             $TotalAmmountToPay = $TotalAmmountToPay * $converted_exchange_rate;
+
+            try {
+                //$product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
+
             array_push($formatedProducts, $product);
         }
 
@@ -2888,6 +2924,11 @@ class MarketplceController extends Controller
             $DiscountTotal = $DiscountTotal * $converted_exchange_rate;
             $TotalAmmountToPay = $TotalAmmountToPay * $converted_exchange_rate;
 
+            try {
+                //$product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
+
             array_push($formatedProducts, $product);
         }
 
@@ -3305,7 +3346,6 @@ class MarketplceController extends Controller
             ->join('states', 'order_items.delivery_state_id', '=', 'states.id')
             ->join('cities', 'order_items.delivery_city_id', '=', 'cities.id')
             ->join('countries', 'order_items.delivery_country_id', '=', 'countries.id')
-            ->join('delivery_companies', 'order_items.delivery_company_id', '=', 'delivery_companies.id')
 
             ->orderBy('order_items.created_at', 'desc')
 
@@ -3330,7 +3370,6 @@ class MarketplceController extends Controller
                 'states.name AS state',
                 'countries.name AS country',
                 'cities.name AS city',
-                'delivery_companies.company_name',
                 'currencies.code AS currency',
 
                 'order_items.variation AS order_variation',
@@ -3394,6 +3433,60 @@ class MarketplceController extends Controller
                 ->join('specifications', 'product_specifications.specificationId', '=', 'specifications.id')
                 ->orderBy('product_specifications.id', 'desc')
                 ->get(['product_specifications.*', 'specifications.title']);
+
+
+            if ($product->delivery_type === 'route' || $product->delivery_type === 'express') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->where('delivery_companies.id', $product['delivery_company_id'])
+                    ->where('addresses.deleted', 'false')
+                    ->first([
+                        'delivery_companies.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state',
+                        'countries.name AS country',
+                        'cities.name AS city'
+                    ]);
+
+                $product['delivery_company_name'] = $delivery_company->company_name;
+                $product['delivery_company_address'] = $delivery_company['address'];
+                $product['delivery_company_state'] = $delivery_company['state'];
+                $product['delivery_company_country'] = $delivery_company['country'];
+                $product['delivery_company_city'] = $delivery_company['city'];
+            } else if ($product->delivery_type === 'seller') {
+                $delivery_company = Seller::where('sellers.id', $product['delivery_company_id'])
+                    ->join('addresses', 'sellers.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->first([
+                        'sellers.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state', 'countries.name AS country', 'cities.name AS city', 'addresses.id AS addr_id'
+                    ]);
+
+                $product['delivery_company_name'] = $delivery_company->shop_name;
+                $product['delivery_company_address'] = $delivery_company['address'];
+                $product['delivery_company_state'] = $delivery_company['state'];
+                $product['delivery_company_country'] = $delivery_company['country'];
+                $product['delivery_company_city'] = $delivery_company['city'];
+            }
+
+            try {
+                $product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
 
             array_push($formatedProducts, $product);
         }
@@ -3479,7 +3572,6 @@ class MarketplceController extends Controller
             ->join('states', 'order_items.delivery_state_id', '=', 'states.id')
             ->join('cities', 'order_items.delivery_city_id', '=', 'cities.id')
             ->join('countries', 'order_items.delivery_country_id', '=', 'countries.id')
-            ->join('delivery_companies', 'order_items.delivery_company_id', '=', 'delivery_companies.id')
 
             ->orderBy('order_items.created_at', 'desc')
 
@@ -3504,7 +3596,6 @@ class MarketplceController extends Controller
                 'states.name AS state',
                 'countries.name AS country',
                 'cities.name AS city',
-                'delivery_companies.company_name',
                 'currencies.code AS currency',
 
                 'order_items.variation AS order_variation',
@@ -3570,6 +3661,60 @@ class MarketplceController extends Controller
                 ->join('specifications', 'product_specifications.specificationId', '=', 'specifications.id')
                 ->orderBy('product_specifications.id', 'desc')
                 ->get(['product_specifications.*', 'specifications.title']);
+
+
+            if ($product->delivery_type === 'route' || $product->delivery_type === 'express') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->where('delivery_companies.id', $product['delivery_company_id'])
+                    ->where('addresses.deleted', 'false')
+                    ->first([
+                        'delivery_companies.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state',
+                        'countries.name AS country',
+                        'cities.name AS city'
+                    ]);
+
+                $product['delivery_company_name'] = $delivery_company->company_name;
+                $product['delivery_company_address'] = $delivery_company['address'];
+                $product['delivery_company_state'] = $delivery_company['state'];
+                $product['delivery_company_country'] = $delivery_company['country'];
+                $product['delivery_company_city'] = $delivery_company['city'];
+            } else if ($product->delivery_type === 'seller') {
+                $delivery_company = Seller::where('sellers.id', $product['delivery_company_id'])
+                    ->join('addresses', 'sellers.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->first([
+                        'sellers.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state', 'countries.name AS country', 'cities.name AS city', 'addresses.id AS addr_id'
+                    ]);
+
+                $product['delivery_company_name'] = $delivery_company->shop_name;
+                $product['delivery_company_address'] = $delivery_company['address'];
+                $product['delivery_company_state'] = $delivery_company['state'];
+                $product['delivery_company_country'] = $delivery_company['country'];
+                $product['delivery_company_city'] = $delivery_company['city'];
+            }
+
+            try {
+                $product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
 
             array_push($formatedProducts, $product);
         }
@@ -4774,6 +4919,11 @@ class MarketplceController extends Controller
             $product['category'] = Category::where('id', $product->category_id)->first();
             $product['brand'] = Brand::where('id', $product->brand_id)->first();
 
+            try {
+                //$product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
+
             array_push($formatedProducts, $product);
         }
 
@@ -5119,6 +5269,55 @@ class MarketplceController extends Controller
         return response()->json(array(
             'status' => 200,
             'data' => $data,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function updateSellerOrderDeliveryStatus(Request $request)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $shippingDate = $request->input('shippingDate');
+        $invoice_id = $request->input('invoice_id');
+
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        if (!OrderItem::where('invoice_id', $invoice_id)->where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Order products were not discoverd.'
+            ), 500);
+        }
+
+        if (!OrderItem::where('invoice_id', $invoice_id)->where('user_id', $userId)->where('delivery_status', 'pending')->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'This Order was awarded to shipping companies.'
+            ), 500);
+        }
+
+        OrderItem::where('invoice_id', $invoice_id)->where('user_id', $userId)
+            ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded', 'awarded_time' => now()]);
+
+        if (sizeof(OrderItem::where('invoice_id', $invoice_id)->get()) == sizeof(OrderItem::where('invoice_id', $invoice_id)->where('user_id', $userId)->get())) {
+            Order::where('invoice_id', $invoice_id)->where('user_id', $userId)
+                ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded', 'awarded_time' => now()]);
+        } else {
+            //check if other Order items status were 'awarded', 'on_route', 'deliverd' or 'confirmed', if true award the Order
+            if (!OrderItem::where('invoice_id', $invoice_id)->where('user_id', '!=', $userId)->where('delivery_status', 'pending')->exists()) {
+                Order::where('invoice_id', $invoice_id)
+                    ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded', 'awarded_time' => now()]);
+            }
+        }
+
+        return response()->json(array(
+            'status' => 200,
             'message' => 'OK'
         ), 200);
     }

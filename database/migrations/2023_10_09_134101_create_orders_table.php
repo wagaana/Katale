@@ -20,7 +20,9 @@ return new class extends Migration
             $table->longText('billing_address');
             $table->longText('shipping_address')->nullable();
 
-            $table->string('delivery_status')->default('pending');
+            $table->enum('delivery_status', ['pending', 'awarded', 'on_route', 'deliverd', 'confirmed'])->default('pending');
+            $table->timestamp('delivery_award_date')->nullable();
+            $table->timestamp('awarded_time')->nullable();
             $table->string('payment_type');
             $table->string('payment_method')->nullable();
             $table->string('mobilemoney_phone')->nullable();

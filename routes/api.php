@@ -394,4 +394,5 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('submitSellerAdvert', [MarketplceController::class, 'submitSellerAdvert']);
     Route::get('loadSellerAdvert', [MarketplceController::class, 'loadSellerAdvert']);
+    Route::post('updateSellerOrderDeliveryStatus', [MarketplceController::class, 'updateSellerOrderDeliveryStatus']);
 });

@@ -29,6 +29,9 @@ return new class extends Migration
             $table->double('delivery_cost')->nullable();
             $table->enum('delivery_type', ['route', 'seller', 'express'])->nullable();
             $table->string('delivery_company_id')->nullable();
+            $table->enum('delivery_status', ['pending', 'awarded', 'on_route', 'deliverd', 'confirmed'])->default('pending');
+            $table->timestamp('delivery_award_date')->nullable();
+            $table->timestamp('awarded_time')->nullable();
 
             $table->string('seller_payment_status')->default('unpaid');
             $table->string('delivery_payment_status')->default('unpaid');
