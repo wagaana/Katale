@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->bigInteger('brand_id')->nullable();
             $table->bigInteger('category_id')->nullable();
-            $table->bigInteger('user_id')->nullable()->comment('if none or 1 then own else sellers');
+            $table->bigInteger('user_id')->comment('Creator of the product');
+            $table->bigInteger('seller_id')->comment('Owner of the product (Seller/Shop)');
             $table->bigInteger('created_by');
             $table->string('slug');
 

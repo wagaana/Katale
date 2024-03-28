@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('invoice_id')->unique();
             $table->string('ext_invoice_id')->nullable();
-            $table->bigInteger('sender_id')->nullable()->comment('customer sending');
+            $table->enum('client_type', ['shop', 'user'])->default('user')->comment('"shop" is from the marketplace, and "user" is from platform users');
+            $table->bigInteger('sender_id')->nullable()->comment('UserID for client_type "user" and ShopID for "shop"');
             $table->bigInteger('reciever_id')->nullable()->comment('recieving customer');
             $table->longText('billing_address')->nullable();
             $table->bigInteger('billing_address_id')->nullable();

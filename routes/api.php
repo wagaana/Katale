@@ -391,13 +391,18 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('updateSellerVoucherPublishedStatus', [MarketplceController::class, 'updateSellerVoucherPublishedStatus']);
     Route::delete('deleteSellerVoucher/{voucher_id}', [MarketplceController::class, 'deleteSellerVoucher']);
     Route::post('updateSellerVoucher', [MarketplceController::class, 'updateSellerVoucher']);
-
     Route::post('submitSellerAdvert', [MarketplceController::class, 'submitSellerAdvert']);
     Route::get('loadSellerAdvert', [MarketplceController::class, 'loadSellerAdvert']);
+
     Route::post('updateSellerOrderDeliveryStatus', [MarketplceController::class, 'updateSellerOrderDeliveryStatus']);
     Route::get('loadDeliveryRequestsToMe', [MarketplceController::class, 'loadDeliveryRequestsToMe']);
     Route::get('loadDeliveryRequestPackages/{invoice_id}', [MarketplceController::class, 'loadDeliveryRequestPackages']);
     Route::get('loadDeliveryRequestsFromMe', [MarketplceController::class, 'loadDeliveryRequestsFromMe']);
     Route::get('loadDeliveryCompanyRequests', [MarketplceController::class, 'loadDeliveryCompanyRequests']);
     Route::get('loadDeliveryCompanyPendingRequests', [MarketplceController::class, 'loadDeliveryCompanyPendingRequests']);
+    Route::get('loadDeliveryCompanyCancelledRequests', [MarketplceController::class, 'loadDeliveryCompanyCancelledRequests']);
+    Route::get('rejectDeliveryCompanyShipment/{invoice_id}', [MarketplceController::class, 'rejectDeliveryCompanyShipment']);
+    Route::get('acceptDeliveryCompanyShipment/{invoice_id}', [MarketplceController::class, 'acceptDeliveryCompanyShipment']);
+    Route::get('finishDeliveryCompanyShipment/{invoice_id}', [MarketplceController::class, 'finishDeliveryCompanyShipment']);
+    Route::get('loadDeliveryCompanyRequestDetails/{invoice_id}', [MarketplceController::class, 'loadDeliveryCompanyRequestDetails']);
 });

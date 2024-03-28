@@ -287,6 +287,15 @@ class MarketplceController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        $seller = Seller::where('user_id', $userId)->first();
+
         $slug = lcfirst(preg_replace('/[.,\s]/', '-', $request->input('name')));
         $i = 0;
         while (Product::where('slug', $slug)->exists()) {
@@ -302,6 +311,7 @@ class MarketplceController extends Controller
         $product->category_id = $request->input('categoryId');
         $product->current_stock = $request->input('current_stock');
         $product->user_id = $userId;
+        $product->seller_id = $seller->id;
         $product->created_by = $userId;
         $product->slug = $slug;
         $product->name = $request->input('name');
@@ -5303,14 +5313,21 @@ class MarketplceController extends Controller
             ), 500);
         }
 
-        if (!OrderItem::where('invoice_id', $invoice_id)->where('user_id', $userId)->exists()) {
+        $seller = Seller::where('user_id', $userId)->first();
+
+        if (!OrderItem::join('products', 'order_items.product_id', '=', 'products.id')
+            ->where('order_items.invoice_id', $invoice_id)
+            ->where('products.seller_id', $seller->id)
+            ->exists()) {
             return response()->json(array(
                 'status' => 500,
                 'message' => 'Order products were not discoverd.'
             ), 500);
         }
 
-        if (!OrderItem::where('invoice_id', $invoice_id)->where('user_id', $userId)->where('delivery_status', 'pending')->exists()) {
+        if (!OrderItem::join('products', 'order_items.product_id', '=', 'products.id')
+            ->where('order_items.invoice_id', $invoice_id)
+            ->where('products.seller_id', $seller->id)->where('order_items.delivery_status', 'pending')->exists()) {
             return response()->json(array(
                 'status' => 500,
                 'message' => 'This Order was awarded to shipping companies.'
@@ -5395,6 +5412,8 @@ class MarketplceController extends Controller
 
             $deliveryRequest = new DeliveryRequest;
             $deliveryRequest->invoice_id = $uuid;
+            $deliveryRequest->client_type = 'shop';
+            $deliveryRequest->sender_id = $seller->id;
             $deliveryRequest->reciever_id = $orderItem->user_id;
             $deliveryRequest->ext_invoice_id = $invoice_id;
             $deliveryRequest->delivery_company_id = $orderItem->delivery_company_id;
@@ -5423,15 +5442,15 @@ class MarketplceController extends Controller
             }
         }
 
-        OrderItem::where('invoice_id', $invoice_id)->where('user_id', $userId)
+        OrderItem::join('products', 'order_items.product_id', '=', 'products.id')->where('order_items.invoice_id', $invoice_id)->where('products.seller_id', $seller->id)
             ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded']);
 
-        if (sizeof(OrderItem::where('invoice_id', $invoice_id)->get()) == sizeof(OrderItem::where('invoice_id', $invoice_id)->where('user_id', $userId)->get())) {
+        if (sizeof(OrderItem::where('invoice_id', $invoice_id)->get()) == sizeof(OrderItem::join('products', 'order_items.product_id', '=', 'products.id')->where('order_items.invoice_id', $invoice_id)->where('products.seller_id', $seller->id)->get())) {
             Order::where('invoice_id', $invoice_id)->where('user_id', $userId)
                 ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded']);
         } else {
             //check if other Order items status were 'awarded', 'on_route', 'deliverd' or 'confirmed', if true award the Order
-            if (!OrderItem::where('invoice_id', $invoice_id)->where('user_id', '!=', $userId)->where('delivery_status', 'pending')->exists()) {
+            if (!OrderItem::join('products', 'order_items.product_id', '=', 'products.id')->where('order_items.invoice_id', $invoice_id)->where('products.seller_id',  '!=', $seller->id)->where('delivery_status', 'pending')->exists()) {
                 Order::where('invoice_id', $invoice_id)
                     ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded']);
             }
@@ -5977,5 +5996,264 @@ class MarketplceController extends Controller
             'data' => $requestsData,
             'message' => 'OK'
         ), 200);
+    }
+
+    public function loadDeliveryCompanyCancelledRequests()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        if (!DeliveryCompany::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'DeliveryCompany account was not discoverd.'
+            ), 500);
+        }
+
+        $deliveryCompany = DeliveryCompany::where('user_id', $userId)->first();
+
+        $deliveryRequests = DeliveryRequest::where('delivery_company_id', $deliveryCompany->id)
+            ->where('delivery_type', '!=', 'seller')
+            ->where(function ($q) {
+                $q->where('delivery_status', 'cancelled')
+                    ->orWhere('delivery_status', 'rejected');
+            })->get();
+
+        $requestsData = array();
+        foreach ($deliveryRequests as $deliveryRequest) {
+            $deliveryRequest->billing_address = json_decode($deliveryRequest->billing_address, true);
+            $deliveryRequest->shipping_address = json_decode($deliveryRequest->shipping_address, true);
+
+            if ($deliveryRequest->delivery_type === 'route' || $deliveryRequest->delivery_type === 'express') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->where('delivery_companies.id', $deliveryRequest['delivery_company_id'])
+                    ->where('addresses.deleted', 'false')
+                    ->first([
+                        'delivery_companies.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state',
+                        'countries.name AS country',
+                        'cities.name AS city',
+                        'currencies.code AS currency',
+                    ]);
+
+                $deliveryRequest['delivery_company_name'] = $delivery_company->company_name;
+                $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+                $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+                $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+                $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+                $deliveryRequest['currency'] = $delivery_company['currency'];
+            } else if ($deliveryRequest->delivery_type === 'seller') {
+                $delivery_company = Seller::where('sellers.id', $deliveryRequest['delivery_company_id'])
+                    ->join('addresses', 'sellers.address_id', '=', 'addresses.id')
+                    ->join('users', 'sellers.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->first([
+                        'sellers.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state', 'countries.name AS country', 'cities.name AS city',
+                        'addresses.id AS addr_id',
+                        'currencies.code AS currency',
+                    ]);
+
+                $deliveryRequest['delivery_company_name'] = $delivery_company->shop_name;
+                $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+                $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+                $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+                $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+                $deliveryRequest['currency'] = $delivery_company['currency'];
+            }
+
+            array_push($requestsData, $deliveryRequest);
+        }
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $requestsData,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function loadDeliveryCompanyRequestDetails($invoice_id)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        if (!DeliveryCompany::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'DeliveryCompany account was not discoverd.'
+            ), 500);
+        }
+
+        $deliveryCompany = DeliveryCompany::where('user_id', $userId)->first();
+
+        $deliveryRequest = DeliveryRequest::where('delivery_company_id', $deliveryCompany->id)
+            ->where('delivery_type', '!=', 'seller')->where('invoice_id', $invoice_id)->first();
+
+        $deliveryRequest->billing_address = json_decode($deliveryRequest->billing_address, true);
+        $deliveryRequest->shipping_address = json_decode($deliveryRequest->shipping_address, true);
+
+        if ($deliveryRequest->delivery_type === 'route' || $deliveryRequest->delivery_type === 'express') {
+            $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+                ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
+                ->join('states', 'addresses.state_id', '=', 'states.id')
+                ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                ->where('delivery_companies.id', $deliveryRequest['delivery_company_id'])
+                ->where('addresses.deleted', 'false')
+                ->first([
+                    'delivery_companies.*',
+                    'addresses.address',
+                    'addresses.city_id',
+                    'addresses.country_id',
+                    'addresses.latitude',
+                    'addresses.longitude',
+                    'states.name AS state',
+                    'countries.name AS country',
+                    'cities.name AS city',
+                    'currencies.code AS currency',
+                ]);
+
+            $deliveryRequest['delivery_company_name'] = $delivery_company->company_name;
+            $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+            $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+            $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+            $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+            $deliveryRequest['currency'] = $delivery_company['currency'];
+        } else if ($deliveryRequest->delivery_type === 'seller') {
+            $delivery_company = Seller::where('sellers.id', $deliveryRequest['delivery_company_id'])
+                ->join('addresses', 'sellers.address_id', '=', 'addresses.id')
+                ->join('users', 'sellers.user_id', '=', 'users.id')
+                ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                ->join('states', 'addresses.state_id', '=', 'states.id')
+                ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                ->first([
+                    'sellers.*',
+                    'addresses.address',
+                    'addresses.city_id',
+                    'addresses.country_id',
+                    'addresses.latitude',
+                    'addresses.longitude',
+                    'states.name AS state', 'countries.name AS country', 'cities.name AS city',
+                    'addresses.id AS addr_id',
+                    'currencies.code AS currency',
+                ]);
+
+            $deliveryRequest['delivery_company_name'] = $delivery_company->shop_name;
+            $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+            $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+            $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+            $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+            $deliveryRequest['currency'] = $delivery_company['currency'];
+        }
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $deliveryRequest,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function rejectDeliveryCompanyShipment($invoice_id)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        return response()->json(array(
+            'data' => $this->updateDeliveryCompanyShipmentStatus($userId, $invoice_id, 'rejected'),
+            'message' => 'OK',
+            'status' => 200
+        ), 200);
+    }
+
+    public function acceptDeliveryCompanyShipment($invoice_id)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        return response()->json(array(
+            'data' => $this->updateDeliveryCompanyShipmentStatus($userId, $invoice_id, 'accepted'),
+            'message' => 'OK',
+            'status' => 200
+        ), 200);
+    }
+
+    public function finishDeliveryCompanyShipment($invoice_id)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        return response()->json(array(
+            'data' => $this->updateDeliveryCompanyShipmentStatus($userId, $invoice_id, 'deliverd'),
+            'message' => 'OK',
+            'status' => 200
+        ), 200);
+    }
+
+    private function updateDeliveryCompanyShipmentStatus($userId, $invoice_id, $delivery_status)
+    {
+        if (!DeliveryCompany::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Delivery Company account was not discoverd.'
+            ), 500);
+        }
+
+        $deliveryCompany = DeliveryCompany::where('user_id', $userId)->first();
+
+        if (!DeliveryRequest::where('invoice_id', $invoice_id)->where('delivery_company_id', $deliveryCompany->id)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Delivery Request account was not discoverd.'
+            ), 500);
+        }
+
+        $deliveryRequest = DeliveryRequest::where('invoice_id', $invoice_id)->first();
+
+        if ($deliveryRequest->client_type === 'shop') {
+            $ext_invoice_id = $deliveryRequest->ext_invoice_id;
+
+            OrderItem::join('products', 'order_items.product_id', '=', 'products.id')->where('order_items.invoice_id', $ext_invoice_id)->where('products.seller_id', $deliveryRequest->sender_id)
+                ->update(['delivery_status'  => $delivery_status]);
+
+            if (sizeof(OrderItem::where('invoice_id', $ext_invoice_id)->get()) == sizeof(OrderItem::join('products', 'order_items.product_id', '=', 'products.id')->where('order_items.invoice_id', $ext_invoice_id)->where('products.seller_id', $deliveryRequest->sender_id)->get())) {
+                Order::where('invoice_id', $ext_invoice_id)->where('user_id', $userId)
+                    ->update(['delivery_status'  => $delivery_status]);
+            } else {
+                //check if other Order items status were 'awarded', 'on_route', 'deliverd' or 'confirmed', if true award the Order
+                if (!OrderItem::join('products', 'order_items.product_id', '=', 'products.id')->where('order_items.invoice_id', $ext_invoice_id)->where('products.seller_id',  '!=', $deliveryRequest->sender_id)->where('delivery_status', 'pending')->exists()) {
+                    Order::where('invoice_id', $ext_invoice_id)
+                        ->update(['delivery_status'  => $delivery_status]);
+                }
+            }
+        }
+
+        $deliveryRequest = DeliveryRequest::where('invoice_id', $invoice_id)->where('delivery_company_id', $deliveryCompany->id)
+            ->update([
+                'delivery_status'  => $delivery_status,
+            ]);
+
+        return $deliveryRequest;
     }
 }
