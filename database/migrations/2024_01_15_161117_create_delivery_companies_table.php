@@ -29,8 +29,12 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('website')->nullable();
             $table->string('address_id')->nullable();
+
             $table->string('rating_count')->default(0);
             $table->string('reviews_count')->default(0);
+
+            $table->bigInteger('pending_shipments')->default(0);
+            $table->double('pending_balance', 255, 2)->default(0.00);
 
             $table->string('nin')->nullable();
             $table->text('national_id')->nullable();

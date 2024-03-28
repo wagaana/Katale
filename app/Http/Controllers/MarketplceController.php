@@ -35,6 +35,8 @@ use App\Models\Currency;
 use App\Models\Voucher;
 use App\Models\Advert;
 use App\Models\Transaction;
+use App\Models\DeliveryRequest;
+use App\Models\DeliveryRequestPackage;
 
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\UsersController;
@@ -3563,6 +3565,17 @@ class MarketplceController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
+        $formatedProducts = $this->loadSellerInvoiceOrderItems($invoice_id, $userId);
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $formatedProducts,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    private function loadSellerInvoiceOrderItems($invoice_id, $userId)
+    {
         $products = OrderItem::where('order_items.invoice_id', $invoice_id)
             ->join('products', 'products.id', '=', 'order_items.product_id')
             ->where('products.user_id', $userId)
@@ -3573,6 +3586,9 @@ class MarketplceController extends Controller
             ->join('states', 'order_items.delivery_state_id', '=', 'states.id')
             ->join('cities', 'order_items.delivery_city_id', '=', 'cities.id')
             ->join('countries', 'order_items.delivery_country_id', '=', 'countries.id')
+
+
+            ->join('orders', 'order_items.invoice_id', '=', 'orders.invoice_id')
 
             ->orderBy('order_items.created_at', 'desc')
 
@@ -3586,6 +3602,7 @@ class MarketplceController extends Controller
                 'order_items.delivery_type',
                 'order_items.delivery_company_id',
                 'order_items.delivery_address_id',
+                'orders.billing_address AS billing_address_id',
                 'order_items.delivery_country_id',
                 'order_items.delivery_state_id',
                 'order_items.delivery_city_id',
@@ -3629,8 +3646,6 @@ class MarketplceController extends Controller
             $product->is_catalog = $product->is_catalog === 0 ? false : true;
 
             $product['order_full_price'] = $product->order_price + $product->order_discount;
-
-            /*[{"attribute_set_id":2,"attribute_id":3},{"attribute_set_id":1,"attribute_id":6}]*/
 
             $attribute_sets = [];
             foreach (json_decode($product->attribute_sets, true) as $attribute_set) {
@@ -3720,11 +3735,7 @@ class MarketplceController extends Controller
             array_push($formatedProducts, $product);
         }
 
-        return response()->json(array(
-            'status' => 200,
-            'data' => $formatedProducts,
-            'message' => 'OK'
-        ), 200);
+        return $formatedProducts;
     }
 
     public function createSellerAccount(Request $request)
@@ -4090,13 +4101,16 @@ class MarketplceController extends Controller
         return response()->json(array(
             'status' => 200,
             'data' => DeliveryCompany::where('delivery_companies.user_id', $userId)
+                ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+                ->join('currencies', 'users.country', '=', 'currencies.country_code')
                 ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
                 ->join('states', 'addresses.state_id', '=', 'states.id')
                 ->join('cities', 'addresses.city_id', '=', 'cities.id')
                 ->join('countries', 'addresses.country_id', '=', 'countries.id')
                 ->first([
                     'delivery_companies.*',
-                    'addresses.address', 'states.name AS state', 'countries.name AS country', 'cities.name AS city'
+                    'addresses.address', 'states.name AS state', 'countries.name AS country', 'cities.name AS city',
+                    'currencies.code AS currency',
                 ]),
             'message' => 'OK'
         ), 200);
@@ -5303,22 +5317,664 @@ class MarketplceController extends Controller
             ), 500);
         }
 
+        $orderItems = OrderItem::where('order_items.invoice_id', $invoice_id)
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->where('products.user_id', $userId)
+            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+
+            ->join('addresses', 'order_items.delivery_address_id', '=', 'addresses.id')
+            ->join('states', 'order_items.delivery_state_id', '=', 'states.id')
+            ->join('cities', 'order_items.delivery_city_id', '=', 'cities.id')
+            ->join('countries', 'order_items.delivery_country_id', '=', 'countries.id')
+
+            ->join('orders', 'order_items.invoice_id', '=', 'orders.invoice_id')
+
+            ->groupBy('order_items.invoice_id')
+            ->groupBy('order_items.delivery_company_id')
+            ->groupBy('order_items.delivery_address_id')
+
+            ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
+            ->get([
+                'products.*',
+                'order_items.order_quantity',
+                'order_items.attributes AS order_attributes',
+                'order_items.id AS cart_id',
+                'order_items.delivery_cost',
+                'order_items.deliveryTime',
+                'order_items.delivery_type',
+                'order_items.delivery_company_id',
+                'order_items.delivery_address_id',
+                'orders.billing_address AS billing_address_id',
+                'order_items.delivery_country_id',
+                'order_items.delivery_state_id',
+                'order_items.delivery_city_id',
+                'order_items.delivery_latitude',
+                'order_items.delivery_longitude',
+                'order_items.delivery_postal_code',
+                'order_items.invoice_id',
+                'users.user_name',
+                'states.name AS state',
+                'countries.name AS country',
+                'cities.name AS city',
+                'currencies.code AS currency',
+
+                'order_items.variation AS order_variation',
+                'order_items.price AS order_price',
+                'order_items.tax AS order_tax',
+                'order_items.discount AS order_discount',
+                'order_items.coupon_discount AS order_coupon_discount',
+                'order_items.product_referral_code AS order_product_referral_code',
+
+                DB::raw('SUM(order_items.order_quantity) as total_order_quantity'),
+                DB::raw('SUM(order_items.price) as total_price'),
+                DB::raw('SUM(order_items.tax) as total_tax'),
+                DB::raw('SUM(order_items.discount) as total_discount'),
+                DB::raw('SUM(order_items.coupon_discount) as total_coupon_discount'),
+                DB::raw('SUM(order_items.delivery_cost) as total_delivery_cost'),
+            ]);
+
+
+        // Loop through the grouped products
+        foreach ($orderItems as $orderItem) {
+            $uuid = $this->get_uuid();
+
+            $billing_address = Address::join('states', 'addresses.state_id', '=', 'states.id')
+                ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                ->orderBy('addresses.created_at', 'desc')
+                ->where('addresses.id', $orderItem->billing_address_id)
+                ->first(['addresses.*', 'states.name AS state', 'countries.name AS country', 'cities.name AS city']);
+
+            $shipping_address = Address::join('states', 'addresses.state_id', '=', 'states.id')
+                ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                ->orderBy('addresses.created_at', 'desc')
+                ->where('addresses.id', $orderItem->delivery_address_id)
+                ->first(['addresses.*', 'states.name AS state', 'countries.name AS country', 'cities.name AS city']);
+
+            $deliveryRequest = new DeliveryRequest;
+            $deliveryRequest->invoice_id = $uuid;
+            $deliveryRequest->reciever_id = $orderItem->user_id;
+            $deliveryRequest->ext_invoice_id = $invoice_id;
+            $deliveryRequest->delivery_company_id = $orderItem->delivery_company_id;
+            $deliveryRequest->billing_address = json_encode($billing_address);
+            $deliveryRequest->billing_address_id = $orderItem->billing_address_id;
+            $deliveryRequest->shipping_address = json_encode($shipping_address);
+            $deliveryRequest->shipping_address_id = $orderItem->delivery_address_id;
+            $deliveryRequest->shipping_date = $shippingDate;
+            $deliveryRequest->delivery_type = $orderItem->delivery_type;
+            $deliveryRequest->order_quantity = $orderItem->total_order_quantity;
+            $deliveryRequest->shipment_value = $orderItem->total_tax + ($orderItem->total_price - ($orderItem->total_discount + $orderItem->total_coupon_discount));
+            $deliveryRequest->shipping_cost = $orderItem->total_delivery_cost;
+            $deliveryRequest->total_payable = $orderItem->total_delivery_cost;
+            $deliveryRequest->save();
+
+            $formatedProducts = $this->loadSellerInvoiceDeliveryPackages($invoice_id, $userId, $orderItem->delivery_company_id, $orderItem->delivery_address_id);
+
+            foreach ($formatedProducts as $sellerOrderItem) {
+                $deliveryRequestPackage = new DeliveryRequestPackage;
+                $deliveryRequestPackage->invoice_id = $uuid;
+                $deliveryRequestPackage->packaging_config = $sellerOrderItem->packaging_config;
+                $deliveryRequestPackage->order_quantity = $sellerOrderItem->order_quantity;
+                $deliveryRequestPackage->package_label = $sellerOrderItem->name;
+                $deliveryRequestPackage->package_value = $sellerOrderItem->order_tax + ($sellerOrderItem->order_price - ($sellerOrderItem->order_discount + $sellerOrderItem->order_coupon_discount));
+                $deliveryRequestPackage->save();
+            }
+        }
+
         OrderItem::where('invoice_id', $invoice_id)->where('user_id', $userId)
-            ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded', 'awarded_time' => now()]);
+            ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded']);
 
         if (sizeof(OrderItem::where('invoice_id', $invoice_id)->get()) == sizeof(OrderItem::where('invoice_id', $invoice_id)->where('user_id', $userId)->get())) {
             Order::where('invoice_id', $invoice_id)->where('user_id', $userId)
-                ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded', 'awarded_time' => now()]);
+                ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded']);
         } else {
             //check if other Order items status were 'awarded', 'on_route', 'deliverd' or 'confirmed', if true award the Order
             if (!OrderItem::where('invoice_id', $invoice_id)->where('user_id', '!=', $userId)->where('delivery_status', 'pending')->exists()) {
                 Order::where('invoice_id', $invoice_id)
-                    ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded', 'awarded_time' => now()]);
+                    ->update(['delivery_award_date'  => $shippingDate, 'delivery_status'  => 'awarded']);
             }
         }
 
         return response()->json(array(
             'status' => 200,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    private function loadSellerInvoiceDeliveryPackages($invoice_id, $userId, $delivery_company_id, $delivery_address_id)
+    {
+        $products = OrderItem::where('order_items.invoice_id', $invoice_id)
+            ->where('order_items.delivery_company_id', $delivery_company_id)
+            ->where('order_items.delivery_address_id', $delivery_address_id)
+            ->where('products.user_id', $userId)
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+
+            ->join('addresses', 'order_items.delivery_address_id', '=', 'addresses.id')
+            ->join('states', 'order_items.delivery_state_id', '=', 'states.id')
+            ->join('cities', 'order_items.delivery_city_id', '=', 'cities.id')
+            ->join('countries', 'order_items.delivery_country_id', '=', 'countries.id')
+
+
+            ->join('orders', 'order_items.invoice_id', '=', 'orders.invoice_id')
+
+            ->orderBy('order_items.created_at', 'desc')
+
+            ->get([
+                'products.*',
+                'order_items.order_quantity',
+                'order_items.attributes AS order_attributes',
+                'order_items.id AS cart_id',
+                'order_items.delivery_cost',
+                'order_items.deliveryTime',
+                'order_items.delivery_type',
+                'order_items.delivery_company_id',
+                'order_items.delivery_address_id',
+                'orders.billing_address AS billing_address_id',
+                'order_items.delivery_country_id',
+                'order_items.delivery_state_id',
+                'order_items.delivery_city_id',
+                'order_items.delivery_latitude',
+                'order_items.delivery_longitude',
+                'order_items.delivery_postal_code',
+                'order_items.invoice_id',
+                'users.user_name',
+                'states.name AS state',
+                'countries.name AS country',
+                'cities.name AS city',
+                'currencies.code AS currency',
+
+                'order_items.variation AS order_variation',
+                'order_items.price AS order_price',
+                'order_items.tax AS order_tax',
+                'order_items.discount AS order_discount',
+                'order_items.coupon_discount AS order_coupon_discount',
+                'order_items.product_referral_code AS order_product_referral_code',
+            ]);
+
+        $formatedProducts = [];
+        foreach ($products as $product) {
+            $images = [];
+
+            foreach (json_decode($product->images, true) as $image) {
+                $image['url'] = getFileLink(@$image);
+                array_push($images, $image);
+            }
+            $product->images = $images;
+            $product->has_variant = $product->has_variant === 0 ? false : true;
+            $product->stock_notification = $product->stock_notification === 0 ? false : true;
+            $product->is_featured = $product->is_featured === 0 ? false : true;
+            $product->is_featured_on_seller = $product->is_featured_on_seller === 0 ? false : true;
+            $product->is_classified = $product->is_classified === 0 ? false : true;
+            $product->is_wholesale = $product->is_wholesale === 0 ? false : true;
+            $product->is_digital = $product->is_digital === 0 ? false : true;
+            $product->is_refundable = $product->is_refundable === 0 ? false : true;
+            $product->todays_deal = $product->todays_deal === 0 ? false : true;
+            $product->is_approved = $product->is_approved === 0 ? false : true;
+            $product->is_catalog = $product->is_catalog === 0 ? false : true;
+
+            $product['order_full_price'] = $product->order_price + $product->order_discount;
+
+            $attribute_sets = [];
+            foreach (json_decode($product->attribute_sets, true) as $attribute_set) {
+                $attribute_set_id = $attribute_set['id'];
+                $attributes = ProductAttribute::where('product_id', $product->id)->where('attribute_id', $attribute_set_id)->get();
+                $set_attributes = [];
+                foreach ($attributes as $attribute) {
+                    foreach (json_decode($product->order_attributes, true) as $order_attribute) {
+                        if ($order_attribute['attribute_id'] === $attribute->id && $order_attribute['attribute_set_id'] === $attribute_set_id) {
+                            $attribute['is_selected'] = true;
+                        }
+                    }
+                    array_push($set_attributes, $attribute);
+                }
+                $attribute_set['attributes'] = $set_attributes;
+
+                foreach (json_decode($product->order_attributes, true) as $order_attribute) {
+                    if ($order_attribute['attribute_set_id'] === $attribute_set_id) {
+                        $attribute_set['SelectedAttribute'] = ProductAttribute::where('id', $order_attribute['attribute_id'])->first();
+                    }
+                }
+                array_push($attribute_sets, $attribute_set);
+            }
+            $product->attribute_sets = $attribute_sets;
+
+            $product->coupon_discount = 0;
+
+            $product['specifications'] = ProductSpecification::where('product_specifications.productId', $product->id)
+                ->join('specifications', 'product_specifications.specificationId', '=', 'specifications.id')
+                ->orderBy('product_specifications.id', 'desc')
+                ->get(['product_specifications.*', 'specifications.title']);
+
+
+            if ($product->delivery_type === 'route' || $product->delivery_type === 'express') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->where('delivery_companies.id', $product['delivery_company_id'])
+                    ->where('addresses.deleted', 'false')
+                    ->first([
+                        'delivery_companies.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state',
+                        'countries.name AS country',
+                        'cities.name AS city'
+                    ]);
+
+                $product['delivery_company_name'] = $delivery_company->company_name;
+                $product['delivery_company_address'] = $delivery_company['address'];
+                $product['delivery_company_state'] = $delivery_company['state'];
+                $product['delivery_company_country'] = $delivery_company['country'];
+                $product['delivery_company_city'] = $delivery_company['city'];
+            } else if ($product->delivery_type === 'seller') {
+                $delivery_company = Seller::where('sellers.id', $product['delivery_company_id'])
+                    ->join('addresses', 'sellers.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->first([
+                        'sellers.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state', 'countries.name AS country', 'cities.name AS city', 'addresses.id AS addr_id'
+                    ]);
+
+                $product['delivery_company_name'] = $delivery_company->shop_name;
+                $product['delivery_company_address'] = $delivery_company['address'];
+                $product['delivery_company_state'] = $delivery_company['state'];
+                $product['delivery_company_country'] = $delivery_company['country'];
+                $product['delivery_company_city'] = $delivery_company['city'];
+            }
+
+            array_push($formatedProducts, $product);
+        }
+
+        return $formatedProducts;
+    }
+
+    public function loadDeliveryRequestsToMe()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $deliveryRequests = DeliveryRequest::where('reciever_id', $userId)->get();
+
+        $requestsData = array();
+        foreach ($deliveryRequests as $deliveryRequest) {
+            $deliveryRequest->billing_address = json_decode($deliveryRequest->billing_address, true);
+            $deliveryRequest->shipping_address = json_decode($deliveryRequest->shipping_address, true);
+
+            if ($deliveryRequest->delivery_type === 'route' || $deliveryRequest->delivery_type === 'express') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->where('delivery_companies.id', $deliveryRequest['delivery_company_id'])
+                    ->where('addresses.deleted', 'false')
+                    ->first([
+                        'delivery_companies.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state',
+                        'countries.name AS country',
+                        'cities.name AS city',
+                        'currencies.code AS currency',
+                    ]);
+
+                $deliveryRequest['delivery_company_name'] = $delivery_company->company_name;
+                $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+                $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+                $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+                $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+                $deliveryRequest['currency'] = $delivery_company['currency'];
+            } else if ($deliveryRequest->delivery_type === 'seller') {
+                $delivery_company = Seller::where('sellers.id', $deliveryRequest['delivery_company_id'])
+                    ->join('addresses', 'sellers.address_id', '=', 'addresses.id')
+                    ->join('users', 'sellers.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->first([
+                        'sellers.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state', 'countries.name AS country', 'cities.name AS city',
+                        'addresses.id AS addr_id',
+                        'currencies.code AS currency',
+                    ]);
+
+                $deliveryRequest['delivery_company_name'] = $delivery_company->shop_name;
+                $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+                $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+                $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+                $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+                $deliveryRequest['currency'] = $delivery_company['currency'];
+            }
+
+            array_push($requestsData, $deliveryRequest);
+        }
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $requestsData,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function loadDeliveryRequestPackages($invoice_id)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        if (!DeliveryRequestPackage::where('invoice_id', $invoice_id)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'No packages were discoverd.'
+            ), 500);
+        }
+
+        $deliveryRequestPackages = DeliveryRequestPackage::where('delivery_request_packages.invoice_id', $invoice_id)
+            ->join('delivery_requests', 'delivery_request_packages.invoice_id', '=', 'delivery_requests.invoice_id')
+            ->join('delivery_companies', 'delivery_companies.id', '=', 'delivery_requests.delivery_company_id')
+            ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+            ->get([
+                'delivery_request_packages.*',
+                'currencies.code AS currency',
+            ]);
+
+        $packageData = array();
+        foreach ($deliveryRequestPackages as $deliveryRequestPackage) {
+            $deliveryRequestPackage->packaging_config = json_decode($deliveryRequestPackage->packaging_config, true);
+            array_push($packageData, $deliveryRequestPackage);
+        }
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $packageData,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function loadDeliveryRequestsFromMe()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $deliveryRequests = DeliveryRequest::where('sender_id', $userId)->get();
+
+        $requestsData = array();
+        foreach ($deliveryRequests as $deliveryRequest) {
+            $deliveryRequest->billing_address = json_decode($deliveryRequest->billing_address, true);
+            $deliveryRequest->shipping_address = json_decode($deliveryRequest->shipping_address, true);
+
+            if ($deliveryRequest->delivery_type === 'route' || $deliveryRequest->delivery_type === 'express') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->where('delivery_companies.id', $deliveryRequest['delivery_company_id'])
+                    ->where('addresses.deleted', 'false')
+                    ->first([
+                        'delivery_companies.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state',
+                        'countries.name AS country',
+                        'cities.name AS city',
+                        'currencies.code AS currency',
+                    ]);
+
+                $deliveryRequest['delivery_company_name'] = $delivery_company->company_name;
+                $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+                $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+                $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+                $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+                $deliveryRequest['currency'] = $delivery_company['currency'];
+            } else if ($deliveryRequest->delivery_type === 'seller') {
+                $delivery_company = Seller::where('sellers.id', $deliveryRequest['delivery_company_id'])
+                    ->join('addresses', 'sellers.address_id', '=', 'addresses.id')
+                    ->join('users', 'sellers.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->first([
+                        'sellers.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state', 'countries.name AS country', 'cities.name AS city',
+                        'addresses.id AS addr_id',
+                        'currencies.code AS currency',
+                    ]);
+
+                $deliveryRequest['delivery_company_name'] = $delivery_company->shop_name;
+                $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+                $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+                $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+                $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+                $deliveryRequest['currency'] = $delivery_company['currency'];
+            }
+
+            array_push($requestsData, $deliveryRequest);
+        }
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $requestsData,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function loadDeliveryCompanyRequests()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        if (!DeliveryCompany::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'DeliveryCompany account was not discoverd.'
+            ), 500);
+        }
+
+        $deliveryCompany = DeliveryCompany::where('user_id', $userId)->first();
+
+        $deliveryRequests = DeliveryRequest::where('delivery_company_id', $deliveryCompany->id)
+            ->where('delivery_type', '!=', 'seller')->get();
+
+        $requestsData = array();
+        foreach ($deliveryRequests as $deliveryRequest) {
+            $deliveryRequest->billing_address = json_decode($deliveryRequest->billing_address, true);
+            $deliveryRequest->shipping_address = json_decode($deliveryRequest->shipping_address, true);
+
+            if ($deliveryRequest->delivery_type === 'route' || $deliveryRequest->delivery_type === 'express') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->where('delivery_companies.id', $deliveryRequest['delivery_company_id'])
+                    ->where('addresses.deleted', 'false')
+                    ->first([
+                        'delivery_companies.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state',
+                        'countries.name AS country',
+                        'cities.name AS city',
+                        'currencies.code AS currency',
+                    ]);
+
+                $deliveryRequest['delivery_company_name'] = $delivery_company->company_name;
+                $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+                $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+                $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+                $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+                $deliveryRequest['currency'] = $delivery_company['currency'];
+            } else if ($deliveryRequest->delivery_type === 'seller') {
+                $delivery_company = Seller::where('sellers.id', $deliveryRequest['delivery_company_id'])
+                    ->join('addresses', 'sellers.address_id', '=', 'addresses.id')
+                    ->join('users', 'sellers.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->first([
+                        'sellers.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state', 'countries.name AS country', 'cities.name AS city',
+                        'addresses.id AS addr_id',
+                        'currencies.code AS currency',
+                    ]);
+
+                $deliveryRequest['delivery_company_name'] = $delivery_company->shop_name;
+                $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+                $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+                $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+                $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+                $deliveryRequest['currency'] = $delivery_company['currency'];
+            }
+
+            array_push($requestsData, $deliveryRequest);
+        }
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $requestsData,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function loadDeliveryCompanyPendingRequests()
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        if (!DeliveryCompany::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'DeliveryCompany account was not discoverd.'
+            ), 500);
+        }
+
+        $deliveryCompany = DeliveryCompany::where('user_id', $userId)->first();
+
+        $deliveryRequests = DeliveryRequest::where('delivery_company_id', $deliveryCompany->id)
+            ->where('delivery_type', '!=', 'seller')
+            ->where(function ($q) {
+                $q->where('delivery_status', 'pending')
+                    ->orWhere('delivery_status', 'accepted');
+            })->get();
+
+        $requestsData = array();
+        foreach ($deliveryRequests as $deliveryRequest) {
+            $deliveryRequest->billing_address = json_decode($deliveryRequest->billing_address, true);
+            $deliveryRequest->shipping_address = json_decode($deliveryRequest->shipping_address, true);
+
+            if ($deliveryRequest->delivery_type === 'route' || $deliveryRequest->delivery_type === 'express') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->where('delivery_companies.id', $deliveryRequest['delivery_company_id'])
+                    ->where('addresses.deleted', 'false')
+                    ->first([
+                        'delivery_companies.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state',
+                        'countries.name AS country',
+                        'cities.name AS city',
+                        'currencies.code AS currency',
+                    ]);
+
+                $deliveryRequest['delivery_company_name'] = $delivery_company->company_name;
+                $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+                $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+                $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+                $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+                $deliveryRequest['currency'] = $delivery_company['currency'];
+            } else if ($deliveryRequest->delivery_type === 'seller') {
+                $delivery_company = Seller::where('sellers.id', $deliveryRequest['delivery_company_id'])
+                    ->join('addresses', 'sellers.address_id', '=', 'addresses.id')
+                    ->join('users', 'sellers.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('states', 'addresses.state_id', '=', 'states.id')
+                    ->join('cities', 'addresses.city_id', '=', 'cities.id')
+                    ->join('countries', 'addresses.country_id', '=', 'countries.id')
+                    ->first([
+                        'sellers.*',
+                        'addresses.address',
+                        'addresses.city_id',
+                        'addresses.country_id',
+                        'addresses.latitude',
+                        'addresses.longitude',
+                        'states.name AS state', 'countries.name AS country', 'cities.name AS city',
+                        'addresses.id AS addr_id',
+                        'currencies.code AS currency',
+                    ]);
+
+                $deliveryRequest['delivery_company_name'] = $delivery_company->shop_name;
+                $deliveryRequest['delivery_company_address'] = $delivery_company['address'];
+                $deliveryRequest['delivery_company_state'] = $delivery_company['state'];
+                $deliveryRequest['delivery_company_country'] = $delivery_company['country'];
+                $deliveryRequest['delivery_company_city'] = $delivery_company['city'];
+                $deliveryRequest['currency'] = $delivery_company['currency'];
+            }
+
+            array_push($requestsData, $deliveryRequest);
+        }
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $requestsData,
             'message' => 'OK'
         ), 200);
     }

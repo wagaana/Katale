@@ -395,4 +395,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('submitSellerAdvert', [MarketplceController::class, 'submitSellerAdvert']);
     Route::get('loadSellerAdvert', [MarketplceController::class, 'loadSellerAdvert']);
     Route::post('updateSellerOrderDeliveryStatus', [MarketplceController::class, 'updateSellerOrderDeliveryStatus']);
+    Route::get('loadDeliveryRequestsToMe', [MarketplceController::class, 'loadDeliveryRequestsToMe']);
+    Route::get('loadDeliveryRequestPackages/{invoice_id}', [MarketplceController::class, 'loadDeliveryRequestPackages']);
+    Route::get('loadDeliveryRequestsFromMe', [MarketplceController::class, 'loadDeliveryRequestsFromMe']);
+    Route::get('loadDeliveryCompanyRequests', [MarketplceController::class, 'loadDeliveryCompanyRequests']);
+    Route::get('loadDeliveryCompanyPendingRequests', [MarketplceController::class, 'loadDeliveryCompanyPendingRequests']);
 });
