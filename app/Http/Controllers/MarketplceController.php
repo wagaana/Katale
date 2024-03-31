@@ -842,7 +842,7 @@ class MarketplceController extends Controller
             $deliveryQuotation['distance'] = $distance;
             $deliveryQuotation['depature_city'] = $addressFrom->city;
             $deliveryQuotation['destination_city'] = $addressTo->city;
-            $deliveryQuotation['company_name'] = $addressFrom->shop_name;
+            $deliveryQuotation['delivery_company_name'] = $addressFrom->shop_name;
 
             $deliveryQuotation['depature_addr_id'] = $addressFrom->addr_id;
             $deliveryQuotation['delivery_address_id'] = $addressTo->id;
@@ -890,6 +890,7 @@ class MarketplceController extends Controller
                 $expressDeliveryCompany['distance'] = $distance;
                 $expressDeliveryCompany['depature_city'] = $addressFrom->city;
                 $expressDeliveryCompany['destination_city'] = $addressTo->city;
+                $expressDeliveryCompany['delivery_company_name'] = $addressTo->company_name;
 
                 $expressDeliveryCompany['depature_addr_id'] = $expressDeliveryCompany->address_id;
                 $expressDeliveryCompany['delivery_address_id'] = $addressTo->id;
@@ -4334,6 +4335,7 @@ class MarketplceController extends Controller
             $deliveryCompany['shippingDate'] = $shippingDate;
             $deliveryCompany['shipmentValue'] = $shipmentValue;
             $deliveryCompany['deliveryContents'] = $deliveryContents;
+            $deliveryCompany['delivery_company_name'] = $deliveryCompany->company_name;
 
             $packages = [];
 
