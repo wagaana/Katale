@@ -24,6 +24,8 @@ return new class extends Migration
             $table->timestamp('delivery_award_date')->nullable();
             $table->string('mobilemoney_phone')->nullable();
 
+            $table->bigInteger('payment_method')->comment('Payment method id');
+            $table->enum('payment_type', ['WALLET', 'CARD', 'PAYPAL', 'MOBILE_MONEY', 'BANK_TRANSFER', 'DPO', 'FLUTTER_WAVE', 'OTHER'])->nullable();
             $table->enum('payment_status', ['unpaid', 'paid'])->default('unpaid');
             $table->tinyInteger('payment_status_viewed')->default(0);
 

@@ -3028,7 +3028,6 @@ class MarketplceController extends Controller
             ), 500);
         }
 
-
         $products = Cart::where('carts.user_id', $userId)
             ->join('products', 'products.id', '=', 'carts.product_id')
             ->join('users', 'products.user_id', '=', 'users.id')
