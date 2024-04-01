@@ -350,7 +350,8 @@ class MarketplceController extends Controller
 
     public function loadProducts()
     {
-        $data = Product::join('users', 'products.user_id', '=', 'users.id')
+        $data = Product::join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->orderBy('id', 'desc')
             ->get(['products.*', 'users.user_name', 'currencies.code AS currency']);
@@ -367,8 +368,18 @@ class MarketplceController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
-        $products = Product::where('products.user_id', $userId)
-            ->join('users', 'products.user_id', '=', 'users.id')
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        $seller = Seller::where('user_id', $userId)->first();
+
+        $products = Product::where('products.seller_id', $seller->id)
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->orderBy('id', 'desc')
             ->get(['products.*', 'users.user_name', 'currencies.code AS currency']);
@@ -429,7 +440,8 @@ class MarketplceController extends Controller
     public function loadRecommendedProducts()
     {
         $products = Product::where('products.is_featured', 1)
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->orderBy('id', 'desc')
             ->get(['products.*', 'users.user_name', 'currencies.code AS currency']);
@@ -490,7 +502,8 @@ class MarketplceController extends Controller
     public function loadFeaturedProducts()
     {
         $products = Product::where('products.is_featured', 1)
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->orderBy('id', 'desc')
             ->get(['products.*', 'users.user_name', 'currencies.code AS currency']);
@@ -550,7 +563,8 @@ class MarketplceController extends Controller
     public function loadProductDetailsBySlug($slug)
     {
         $product = Product::where('products.slug', $slug)
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->orderBy('products.id', 'desc')
             ->first(['products.*', 'users.level', 'users.name AS authorName', 'users.user_name', 'users.email', 'users.profile_picture', 'currencies.code AS currency']);
@@ -756,7 +770,8 @@ class MarketplceController extends Controller
         $userId = $user->id;
 
         $product = Product::where('products.slug', $slug)
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->orderBy('products.id', 'desc')
             ->first(['products.*', 'users.level', 'users.name AS authorName', 'users.user_name', 'users.email', 'users.profile_picture', 'currencies.code AS currency']);
@@ -932,7 +947,8 @@ class MarketplceController extends Controller
     public function loadProductDetails($productId)
     {
         $product = Product::where('products.id', $productId)
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->orderBy('products.id', 'desc')
             ->first(['products.*', 'users.level', 'users.name AS authorName', 'users.user_name', 'users.email', 'users.profile_picture', 'currencies.code AS currency']);
@@ -1367,7 +1383,8 @@ class MarketplceController extends Controller
 
     public function loadCategoryProducts($categoryId)
     {
-        $data = Product::join('users', 'products.user_id', '=', 'users.id')
+        $data = Product::join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->where('products.category_id', $categoryId)
             ->orderBy('id', 'desc')
@@ -1760,7 +1777,8 @@ class MarketplceController extends Controller
 
         $products = ProductView::where('product_views.user_id', $userId)
             ->join('products', 'products.id', '=', 'product_views.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->orderBy('product_views.created_at', 'desc')
             ->get(['products.*', 'users.user_name', 'currencies.code AS currency']);
@@ -1843,7 +1861,8 @@ class MarketplceController extends Controller
 
         $products = Wishlist::where('wishlists.user_id', $userId)
             ->join('products', 'products.id', '=', 'wishlists.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->orderBy('wishlists.created_at', 'desc')
             ->get(['products.*', 'users.user_name', 'currencies.code AS currency']);
@@ -2115,7 +2134,8 @@ class MarketplceController extends Controller
 
         $products = Cart::where('carts.user_id', $userId)
             ->join('products', 'products.id', '=', 'carts.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
 
             ->join('addresses', 'carts.delivery_address_id', '=', 'addresses.id')
@@ -2268,7 +2288,8 @@ class MarketplceController extends Controller
 
         $products = Cart::where('carts.user_id', $userId)
             ->join('products', 'products.id', '=', 'carts.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
 
             ->join('addresses', 'carts.delivery_address_id', '=', 'addresses.id')
@@ -2502,7 +2523,8 @@ class MarketplceController extends Controller
 
         $products = Cart::where('carts.user_id', $userId)
             ->join('products', 'products.id', '=', 'carts.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->groupBy('carts.product_id')
             ->orderByDesc(DB::raw('MAX(carts.created_at)'))
             ->get([
@@ -2714,7 +2736,8 @@ class MarketplceController extends Controller
 
         $products = Cart::where('carts.user_id', $userId)
             ->join('products', 'products.id', '=', 'carts.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
 
             ->join('addresses', 'carts.delivery_address_id', '=', 'addresses.id')
@@ -2949,7 +2972,8 @@ class MarketplceController extends Controller
 
         $products = Cart::where('carts.user_id', $userId)
             ->join('products', 'products.id', '=', 'carts.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->groupBy('carts.product_id')
             ->orderByDesc(DB::raw('MAX(carts.created_at)'))
             ->get([
@@ -3030,7 +3054,8 @@ class MarketplceController extends Controller
 
         $products = Cart::where('carts.user_id', $userId)
             ->join('products', 'products.id', '=', 'carts.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
 
             ->join('addresses', 'carts.delivery_address_id', '=', 'addresses.id')
@@ -3353,7 +3378,8 @@ class MarketplceController extends Controller
         $products = OrderItem::where('order_items.user_id', $userId)
             ->where('order_items.invoice_id', $invoice_id)
             ->join('products', 'products.id', '=', 'order_items.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
 
             ->join('addresses', 'order_items.delivery_address_id', '=', 'addresses.id')
@@ -3517,10 +3543,19 @@ class MarketplceController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        $seller = Seller::where('user_id', $userId)->first();
+
         $result = OrderItem::join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
             ->join('products', 'products.id', '=', 'order_items.product_id')
             ->join('users', 'orders.user_id', '=', 'users.id')
-            ->where('products.user_id', $userId)
+            ->where('products.seller_id', $seller->id)
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
             ->groupBy('order_items.invoice_id')
@@ -3547,10 +3582,19 @@ class MarketplceController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        $seller = Seller::where('user_id', $userId)->first();
+
         $result = OrderItem::join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
             ->join('products', 'products.id', '=', 'order_items.product_id')
             ->join('users', 'orders.user_id', '=', 'users.id')
-            ->where('products.user_id', $userId)
+            ->where('products.seller_id', $seller->id)
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
             ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
             ->groupBy('order_items.invoice_id')
@@ -3576,7 +3620,16 @@ class MarketplceController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
-        $formatedProducts = $this->loadSellerInvoiceOrderItems($invoice_id, $userId);
+        if (!Seller::where('user_id', $userId)->exists()) {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Seller account was not discoverd.'
+            ), 500);
+        }
+
+        $seller = Seller::where('user_id', $userId)->first();
+
+        $formatedProducts = $this->loadSellerInvoiceOrderItems($invoice_id, $seller->id);
 
         return response()->json(array(
             'status' => 200,
@@ -3585,12 +3638,13 @@ class MarketplceController extends Controller
         ), 200);
     }
 
-    private function loadSellerInvoiceOrderItems($invoice_id, $userId)
+    private function loadSellerInvoiceOrderItems($invoice_id, $seller_id)
     {
         $products = OrderItem::where('order_items.invoice_id', $invoice_id)
             ->join('products', 'products.id', '=', 'order_items.product_id')
-            ->where('products.user_id', $userId)
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
+            ->where('products.seller_id', $seller_id)
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
 
             ->join('addresses', 'order_items.delivery_address_id', '=', 'addresses.id')
@@ -4888,22 +4942,25 @@ class MarketplceController extends Controller
 
         $products = [];
         if ($menuId === 1) {
-            $products = Product::where('products.user_id', $seller_id)
+            $products = Product::where('products.seller_id', $seller_id)
                 ->where('products.is_featured_on_seller', 1)
-                ->join('users', 'products.user_id', '=', 'users.id')
+                ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+                ->join('users', 'sellers.user_id', '=', 'users.id')
                 ->join('currencies', 'users.country', '=', 'currencies.country_code')
                 ->orderBy('id', 'desc')
                 ->get(['products.*', 'users.user_name', 'currencies.code AS currency']);
         } else if ($menuId === 2) {
-            $products = Product::where('products.user_id', $seller_id)
-                ->join('users', 'products.user_id', '=', 'users.id')
+            $products = Product::where('products.seller_id', $seller_id)
+                ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+                ->join('users', 'sellers.user_id', '=', 'users.id')
                 ->join('currencies', 'users.country', '=', 'currencies.country_code')
                 ->orderBy('id', 'desc')
                 ->get(['products.*', 'users.user_name', 'currencies.code AS currency']);
         } else if ($menuId === 3) {
-            $products = Product::where('products.user_id', $seller_id)
+            $products = Product::where('products.seller_id', $seller_id)
                 ->where('products.special_discount_end', '>', now())
-                ->join('users', 'products.user_id', '=', 'users.id')
+                ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+                ->join('users', 'sellers.user_id', '=', 'users.id')
                 ->join('currencies', 'users.country', '=', 'currencies.country_code')
                 ->orderBy('id', 'desc')
                 ->get(['products.*', 'users.user_name', 'currencies.code AS currency']);
@@ -5338,8 +5395,9 @@ class MarketplceController extends Controller
 
         $orderItems = OrderItem::where('order_items.invoice_id', $invoice_id)
             ->join('products', 'products.id', '=', 'order_items.product_id')
-            ->where('products.user_id', $userId)
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
+            ->where('products.seller_id', $seller->id)
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
 
             ->join('addresses', 'order_items.delivery_address_id', '=', 'addresses.id')
@@ -5431,7 +5489,7 @@ class MarketplceController extends Controller
             $deliveryRequest->total_payable = $orderItem->total_delivery_cost;
             $deliveryRequest->save();
 
-            $formatedProducts = $this->loadSellerInvoiceDeliveryPackages($invoice_id, $userId, $orderItem->delivery_company_id, $orderItem->delivery_address_id);
+            $formatedProducts = $this->loadSellerInvoiceDeliveryPackages($invoice_id, $seller->id, $orderItem->delivery_company_id, $orderItem->delivery_address_id);
 
             foreach ($formatedProducts as $sellerOrderItem) {
                 $deliveryRequestPackage = new DeliveryRequestPackage;
@@ -5464,14 +5522,15 @@ class MarketplceController extends Controller
         ), 200);
     }
 
-    private function loadSellerInvoiceDeliveryPackages($invoice_id, $userId, $delivery_company_id, $delivery_address_id)
+    private function loadSellerInvoiceDeliveryPackages($invoice_id, $seller_id, $delivery_company_id, $delivery_address_id)
     {
         $products = OrderItem::where('order_items.invoice_id', $invoice_id)
             ->where('order_items.delivery_company_id', $delivery_company_id)
             ->where('order_items.delivery_address_id', $delivery_address_id)
-            ->where('products.user_id', $userId)
             ->join('products', 'products.id', '=', 'order_items.product_id')
-            ->join('users', 'products.user_id', '=', 'users.id')
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
+            ->where('products.seller_id', $seller_id)
             ->join('currencies', 'users.country', '=', 'currencies.country_code')
 
             ->join('addresses', 'order_items.delivery_address_id', '=', 'addresses.id')

@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use App\Models\AccountRequest;
 use App\Models\User;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function request_account(Request $request)
     {
         $decryptedData = $this->decryptData($request->data, $request->key, $request->iv);
 
@@ -21,6 +23,99 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'country' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
+            'phone' => 'required|string|min:10'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 403);
+        }
+
+        $randomNumber = random_int(100000, 999999);
+        $token = $this->get_uuid();
+
+        $jsonDecryptedData['otp'] = $randomNumber;
+
+        $accountRequest = AccountRequest::create([
+            'name' => $jsonDecryptedData['name'],
+            'country' => $jsonDecryptedData['country'],
+            'email' => $jsonDecryptedData['email'],
+            'phone' => $jsonDecryptedData['phone'],
+            'otp' =>  $jsonDecryptedData['otp'],
+            'token' => $token,
+        ]);
+
+        if ($accountRequest) {
+            Mail::send('email.verifyEmail', [
+                'otp' => $jsonDecryptedData['otp'],
+                'name' => $jsonDecryptedData['name'],
+                'title' => 'Verify Your Email',
+                'email_message' => 'We received a request to create an account on Nsiimbi using this email address. </br>Use the following token to complete the request.',
+                'footer' => 'If you did not request an account creation, no further action is required.',
+            ], function ($message) use ($jsonDecryptedData) {
+                $message->to($jsonDecryptedData['email']);
+                $message->subject($jsonDecryptedData['otp'] . ' is your email verification tocken');
+            });
+
+            return response()->json(array(
+                'status' => 200,
+                'token' => $token,
+                'message' => 'OK'
+            ), 200);
+        } else {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Something went wrong'
+            ), 500);
+        }
+    }
+
+    public function verify_email(Request $request)
+    {
+        $decryptedData = $this->decryptData($request->data, $request->key, $request->iv);
+
+        $jsonDecryptedData = json_decode($decryptedData, true);
+
+        $validator = Validator::make($jsonDecryptedData, [
+            'otp' => 'required|string|min:6',
+            'token' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 403);
+        }
+
+        if (!AccountRequest::where('otp', $jsonDecryptedData['otp'])->where('token', $jsonDecryptedData['token'])->exists()) {
+            return response()->json(array(
+                'status' => 402,
+                'message' => 'Wrong token'
+            ), 402);
+        }
+
+        $accountRequest = AccountRequest::where('otp', $jsonDecryptedData['otp'])->where('token', $jsonDecryptedData['token'])->update([
+            'otp_verified'  => 'true',
+        ]);
+
+        if ($accountRequest) {
+            return response()->json(array(
+                'status' => 200,
+                'message' => 'OK'
+            ), 200);
+        } else {
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Something went wrong'
+            ), 500);
+        }
+    }
+
+    public function register(Request $request)
+    {
+        $decryptedData = $this->decryptData($request->data, $request->key, $request->iv);
+
+        $jsonDecryptedData = json_decode($decryptedData, true);
+
+        $validator = Validator::make($jsonDecryptedData, [
+            'token' => 'required|string',
             'password' => 'required|string|min:8',
             'pin' => 'required|digits:4'
         ]);
@@ -29,7 +124,16 @@ class AuthController extends Controller
             return response()->json($validator->errors(), 403);
         }
 
-        $user_name = lcfirst(preg_replace('/[.,\s]/', '', $jsonDecryptedData['name']));
+        if (!AccountRequest::where('otp_verified', 'true')->where('token', $jsonDecryptedData['token'])->exists()) {
+            return response()->json(array(
+                'status' => 402,
+                'message' => 'Wrong token'
+            ), 402);
+        }
+
+        $accountRequest = AccountRequest::where('otp_verified', 'true')->where('token', $jsonDecryptedData['token'])->first();
+
+        $user_name = lcfirst(preg_replace('/[.,\s]/', '', $accountRequest->name));
         $i = 0;
         while (User::where('user_name', $user_name)->exists()) {
             $i++;
@@ -37,12 +141,13 @@ class AuthController extends Controller
         }
 
         $user = User::create([
-            'name' => $jsonDecryptedData['name'],
+            'name' => $accountRequest->name,
             'user_name' => $user_name,
-            'email' => $jsonDecryptedData['email'],
+            'email' => $accountRequest->email,
             'password' => Hash::make($jsonDecryptedData['password']),
             'pin' => Hash::make($jsonDecryptedData['pin']),
-            'country' => $jsonDecryptedData['country']
+            'country' => $accountRequest->country,
+            'phone' => $accountRequest->phone,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
