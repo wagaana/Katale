@@ -26,6 +26,8 @@ class User extends Authenticatable
         'pin',
         'country',
         'phone',
+        'profile_picture',
+        'cover_picture'
     ];
 
     /*

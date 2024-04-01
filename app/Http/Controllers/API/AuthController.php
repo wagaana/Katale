@@ -53,7 +53,7 @@ class AuthController extends Controller
                 'footer' => 'If you did not request an account creation, no further action is required.',
             ], function ($message) use ($jsonDecryptedData) {
                 $message->to($jsonDecryptedData['email']);
-                $message->subject($jsonDecryptedData['otp'] . ' is your email verification tocken');
+                $message->subject($jsonDecryptedData['otp'] . ' is your email verification token');
             });
 
             return response()->json(array(
@@ -148,6 +148,8 @@ class AuthController extends Controller
             'pin' => Hash::make($jsonDecryptedData['pin']),
             'country' => $accountRequest->country,
             'phone' => $accountRequest->phone,
+            'profile_picture' => env('APP_URL') . '/images/default_profile.png',
+            'cover_picture' => env('APP_URL') . '/images/default_cover.jpg'
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
