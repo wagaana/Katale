@@ -49,7 +49,7 @@ class AuthController extends Controller
                 'otp' => $jsonDecryptedData['otp'],
                 'name' => $jsonDecryptedData['name'],
                 'title' => 'Verify Your Email',
-                'email_message' => 'We received a request to create an account on Nsiimbi using this email address. </br>Use the following token to complete the request.',
+                'email_message' => 'We received a request to create an account on Nsiimbi using this email address. Use the following token to complete the request.',
                 'footer' => 'If you did not request an account creation, no further action is required.',
             ], function ($message) use ($jsonDecryptedData) {
                 $message->to($jsonDecryptedData['email']);
