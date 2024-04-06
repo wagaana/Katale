@@ -171,6 +171,22 @@ class AuthController extends Controller
 
         $jsonDecryptedData = json_decode($decryptedData, true);
 
+        $validator = Validator::make($jsonDecryptedData, [
+            'email' => 'required|string|email|max:255',
+            'password' => 'required|string|min:8',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 403);
+        }
+
+        if (!User::where('email', $jsonDecryptedData['email'])->exists()) {
+            return response()->json(array(
+                'status' => 501,
+                'message' => 'Account with this email doesent exists.'
+            ), 501);
+        }
+
         $credentials = [
             'email' => $jsonDecryptedData['email'],
             'password' => $jsonDecryptedData['password']
