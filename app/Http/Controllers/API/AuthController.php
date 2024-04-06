@@ -26,6 +26,13 @@ class AuthController extends Controller
             'phone' => 'required|string|min:10'
         ]);
 
+        if (User::where('email', $jsonDecryptedData['email'])->exists()) {
+            return response()->json(array(
+                'status' => 401,
+                'message' => 'Account with this email exists.'
+            ), 401);
+        }
+
         if ($validator->fails()) {
             return response()->json($validator->errors(), 403);
         }
@@ -86,9 +93,9 @@ class AuthController extends Controller
 
         if (!AccountRequest::where('otp', $jsonDecryptedData['otp'])->where('token', $jsonDecryptedData['token'])->exists()) {
             return response()->json(array(
-                'status' => 402,
+                'status' => 401,
                 'message' => 'Wrong token'
-            ), 402);
+            ), 401);
         }
 
         $accountRequest = AccountRequest::where('otp', $jsonDecryptedData['otp'])->where('token', $jsonDecryptedData['token'])->update([
@@ -126,9 +133,9 @@ class AuthController extends Controller
 
         if (!AccountRequest::where('otp_verified', 'true')->where('token', $jsonDecryptedData['token'])->exists()) {
             return response()->json(array(
-                'status' => 402,
+                'status' => 401,
                 'message' => 'Wrong token'
-            ), 402);
+            ), 401);
         }
 
         $accountRequest = AccountRequest::where('otp_verified', 'true')->where('token', $jsonDecryptedData['token'])->first();
