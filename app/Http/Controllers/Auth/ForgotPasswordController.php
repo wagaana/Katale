@@ -41,7 +41,7 @@ class ForgotPasswordController extends Controller
             'email' => 'required|email|exists:users',
         ]);
 
-        if (!User::where('email', $request->email)->exists()) {
+        if (!User::where('email', $request->input('email'))->exists()) {
             return response()->json(array(
                 'status' => 401,
                 'message' => "Account with this email doesen't exists."
