@@ -65,7 +65,7 @@ Route::post('/request_account', [AuthController::class, 'request_account']);
 Route::post('/verify_email', [AuthController::class, 'verify_email']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('forgot_password', [ForgotPasswordController::class, 'submitForgetPasswordForm']);
+Route::post('/forgot_password', [ForgotPasswordController::class, 'submitForgetPasswordForm']);
 Route::post('reset_password', [ForgotPasswordController::class, 'resetPassword']);
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
