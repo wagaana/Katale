@@ -37,16 +37,16 @@ class ForgotPasswordController extends Controller
      */
     public function submitForgetPasswordForm(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email|exists:users',
-        ]);
-
         if (!User::where('email', $request->input('email'))->exists()) {
             return response()->json(array(
                 'status' => 401,
                 'message' => "Account with this email doesen't exists."
             ), 401);
         }
+
+        $request->validate([
+            'email' => 'required|email|exists:users',
+        ]);
 
         $token = Str::random(64);
 
