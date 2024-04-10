@@ -3082,6 +3082,7 @@ class MarketplceController extends Controller
     {
         $user = auth()->user();
         $userId = $user->id;
+        $userCurrency = Currency::where("country_code", $user->country)->first();
 
         $invoice_id = $this->get_uuid();
 
@@ -3147,6 +3148,15 @@ class MarketplceController extends Controller
             $TotalAmmountToPay = 0;
             $CouponDiscountTotal = 0;
             $SheepingFees = 0;
+            $seller_converted_exchange_rate = 1;
+            $delivery_company_converted_exchange_rate = 1;
+
+            if ($product['currency'] !== $userCurrency->code) {
+                $seller_converted_exchange_rate = Currency::where('code', $product['currency'])
+                    ->orderBy('id', 'desc')
+                    ->selectRaw('*, ROUND(exchange_rate / ?, 6) as converted_exchange_rate', [$userCurrency->exchange_rate])
+                    ->first()['converted_exchange_rate'];
+            }
 
             $attribute_sets = [];
             foreach (json_decode($product->attribute_sets, true) as $attribute_set) {
@@ -3195,6 +3205,13 @@ class MarketplceController extends Controller
 
 
             if ($product['delivery_type'] === 'seller') {
+                if ($product['currency'] !== $userCurrency->code) {
+                    $delivery_company_converted_exchange_rate = Currency::where('code', $product['currency'])
+                        ->orderBy('id', 'desc')
+                        ->selectRaw('*, ROUND(exchange_rate / ?, 6) as converted_exchange_rate', [$userCurrency->exchange_rate])
+                        ->first()['converted_exchange_rate'];
+                }
+
                 $distance = round($this->distance($addressFrom->latitude, $addressFrom->longitude, $addressTo->latitude, $addressTo->longitude, "K"), 0, PHP_ROUND_HALF_UP);
 
                 $dimensional_weight = $cubic_area / $addressFrom->dimensional_divisor;
@@ -3220,6 +3237,22 @@ class MarketplceController extends Controller
                 $deliveryQuotation['pkgDeliveryFee'] = ($addressFrom->express_delivery_fee * $deliveryQuotation['weight']) * $distance;
                 $deliveryQuotation['pkgDeliveryFee'] = $deliveryQuotation['pkgDeliveryFee'] < $addressFrom->express_delivery_fee ? $addressFrom->express_delivery_fee : $deliveryQuotation['pkgDeliveryFee'];
             } else if ($product['delivery_type'] === 'route') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->where('delivery_companies.id', $product['delivery_company_id'])
+                    ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->first([
+                        'delivery_companies.*',
+                        'currencies.code AS currency'
+                    ]);
+
+                if ($delivery_company['currency'] !== $userCurrency->code) {
+                    $delivery_company_converted_exchange_rate = Currency::where('code', $delivery_company['currency'])
+                        ->orderBy('id', 'desc')
+                        ->selectRaw('*, ROUND(exchange_rate / ?, 6) as converted_exchange_rate', [$userCurrency->exchange_rate])
+                        ->first()['converted_exchange_rate'];
+                }
+
                 $deliveryQuotation = $this->loadDeliveryCompanyRoute($addressFrom->city_id, $addressTo->city_id, $product['delivery_company_id']);
 
                 $dimensional_weight = $cubic_area / $deliveryQuotation->dimensional_divisor;
@@ -3237,6 +3270,22 @@ class MarketplceController extends Controller
                 $deliveryQuotation['pkgDeliveryFee'] = $deliveryQuotation->deliveryFeePerKg * $deliveryQuotation['weight'];
                 $deliveryQuotation['pkgDeliveryFee'] = $deliveryQuotation['pkgDeliveryFee'] < $deliveryQuotation->minDeliveryFee ? $deliveryQuotation->minDeliveryFee : $deliveryQuotation['pkgDeliveryFee'];
             } else if ($product['delivery_type'] === 'express') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->where('delivery_companies.id', $product['delivery_company_id'])
+                    ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->first([
+                        'delivery_companies.*',
+                        'currencies.code AS currency'
+                    ]);
+
+                if ($delivery_company['currency'] !== $userCurrency->code) {
+                    $delivery_company_converted_exchange_rate = Currency::where('code', $delivery_company['currency'])
+                        ->orderBy('id', 'desc')
+                        ->selectRaw('*, ROUND(exchange_rate / ?, 6) as converted_exchange_rate', [$userCurrency->exchange_rate])
+                        ->first()['converted_exchange_rate'];
+                }
+
                 $deliveryQuotation = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
                     ->join('addresses', 'delivery_companies.address_id', '=', 'addresses.id')
                     ->join('states', 'addresses.state_id', '=', 'states.id')
@@ -3319,12 +3368,12 @@ class MarketplceController extends Controller
             $orderItem->order_quantity = $product->order_quantity;
             $orderItem->attributes = $product->cart_attributes;
 
-            $orderItem->price = $TotalAmmountToPay;
-            $orderItem->tax = $VatTaxTotal;
-            $orderItem->discount = $DiscountTotal;
-            $orderItem->coupon_discount = $CouponDiscountTotal;
+            $orderItem->price = $TotalAmmountToPay * $seller_converted_exchange_rate;
+            $orderItem->tax = $VatTaxTotal * $seller_converted_exchange_rate;
+            $orderItem->discount = $DiscountTotal * $seller_converted_exchange_rate;
+            $orderItem->coupon_discount = $CouponDiscountTotal * $seller_converted_exchange_rate;
 
-            $orderItem->delivery_cost = $SheepingFees;
+            $orderItem->delivery_cost = $SheepingFees * $delivery_company_converted_exchange_rate;
             $orderItem->delivery_type = $product['delivery_type'];
             $orderItem->deliveryTime = $product['delivery_type'] == 'route' ? '1-3 Days' : ($product['delivery_type'] == 'seller' ? 'Seller'  : ($product['delivery_type'] == 'express' ? 'Express' : '10-60 Days'));
             $orderItem->delivery_company_id  = $product['delivery_company_id'];
