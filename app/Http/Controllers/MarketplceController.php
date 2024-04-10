@@ -2806,12 +2806,39 @@ class MarketplceController extends Controller
         $SheepingFees = 0;
 
         foreach ($products as $product) {
-            $converted_exchange_rate = 1;
+            $seller_converted_exchange_rate = 1;
+            $delivery_company_converted_exchange_rate = 1;
+
             if ($product['currency'] !== $userCurrency->code) {
-                $converted_exchange_rate = Currency::where('code', $product['currency'])
+                $seller_converted_exchange_rate = Currency::where('code', $product['currency'])
                     ->orderBy('id', 'desc')
                     ->selectRaw('*, ROUND(exchange_rate / ?, 6) as converted_exchange_rate', [$userCurrency->exchange_rate])
                     ->first()['converted_exchange_rate'];
+            }
+
+            if ($product->delivery_type === 'route' || $product->delivery_type === 'express') {
+                $delivery_company = DeliveryCompany::where('delivery_companies.express_delivery_enabled', 'True')
+                    ->where('delivery_companies.id', $product['delivery_company_id'])
+                    ->join('users', 'delivery_companies.user_id', '=', 'users.id')
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->first([
+                        'delivery_companies.*',
+                        'currencies.code AS currency'
+                    ]);
+
+                if ($delivery_company['currency'] !== $userCurrency->code) {
+                    $delivery_company_converted_exchange_rate = Currency::where('code', $delivery_company['currency'])
+                        ->orderBy('id', 'desc')
+                        ->selectRaw('*, ROUND(exchange_rate / ?, 6) as converted_exchange_rate', [$userCurrency->exchange_rate])
+                        ->first()['converted_exchange_rate'];
+                }
+            } else if ($product->delivery_type === 'seller') {
+                if ($product['currency'] !== $userCurrency->code) {
+                    $delivery_company_converted_exchange_rate = Currency::where('code', $product['currency'])
+                        ->orderBy('id', 'desc')
+                        ->selectRaw('*, ROUND(exchange_rate / ?, 6) as converted_exchange_rate', [$userCurrency->exchange_rate])
+                        ->first()['converted_exchange_rate'];
+                }
             }
 
             $attribute_sets = [];
@@ -2982,11 +3009,11 @@ class MarketplceController extends Controller
                 $TotalAmmountToPay += $priceToPay;
             }
 
-            $Subtotal = $Subtotal * $converted_exchange_rate;
-            $SheepingFees = $SheepingFees * $converted_exchange_rate;
-            $VatTaxTotal = $VatTaxTotal * $converted_exchange_rate;
-            $DiscountTotal = $DiscountTotal * $converted_exchange_rate;
-            $TotalAmmountToPay = $TotalAmmountToPay * $converted_exchange_rate;
+            $Subtotal = $Subtotal * $seller_converted_exchange_rate;
+            $SheepingFees = $SheepingFees * $delivery_company_converted_exchange_rate;
+            $VatTaxTotal = $VatTaxTotal * $seller_converted_exchange_rate;
+            $DiscountTotal = $DiscountTotal * $seller_converted_exchange_rate;
+            $TotalAmmountToPay = $TotalAmmountToPay * $seller_converted_exchange_rate;
 
             try {
                 //$product->packaging_config = json_decode($product->packaging_config, true);
@@ -3018,7 +3045,7 @@ class MarketplceController extends Controller
             $CouponDiscountTotal += $coupon_discount;
         }
 
-        $CouponDiscountTotal = $CouponDiscountTotal * $converted_exchange_rate;
+        $CouponDiscountTotal = $CouponDiscountTotal * $seller_converted_exchange_rate;
 
         $billingAddress = Address::join('states', 'addresses.state_id', '=', 'states.id')
             ->join('cities', 'addresses.city_id', '=', 'cities.id')
