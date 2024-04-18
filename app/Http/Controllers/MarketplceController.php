@@ -125,6 +125,17 @@ class MarketplceController extends Controller
         ), 200);
     }
 
+    public function loadCategoryDetails($categoryId)
+    {
+        $data = Category::where('id', $categoryId)->first();
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $data,
+            'message' => 'OK'
+        ), 200);
+    }
+
     public function deleteShopingCategory($categoryId)
     {
 

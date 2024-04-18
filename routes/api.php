@@ -262,6 +262,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     /*client requests*/
     Route::get('loadShopingFeaturedCategories', [MarketplceController::class, 'loadShopingFeaturedCategories']);
     Route::get('loadCategorySubCategories/{categoryId}', [MarketplceController::class, 'loadCategorySubCategories']);
+    Route::get('loadCategoryDetails/{categoryId}', [MarketplceController::class, 'loadCategoryDetails']);
     Route::get('loadShopingMainCategories', [MarketplceController::class, 'loadShopingMainCategories']);
     Route::get('loadFeaturedProducts', [MarketplceController::class, 'loadFeaturedProducts']);
     Route::get('loadRecommendedProducts', [MarketplceController::class, 'loadRecommendedProducts']);
