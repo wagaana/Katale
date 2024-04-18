@@ -18,7 +18,7 @@
             <template v-slot:item="{ item }">
               <tr @click="loadCategory(item)">
                 <td>
-                  <img :src="item.logo" width="30px" height="30px" />
+                  <img :src="item.url" width="30px" height="30px" />
                 </td>
                 <td>{{ item.title }}</td>
                 <td>{{ item.description }}</td>
@@ -89,7 +89,7 @@
         <v-card-title>
           <v-card
             :style="{
-              'background-image': `url(${activeCategory.logo})`,
+              'background-image': `url(${activeCategory.url})`,
               'background-repeat': 'no-repeat',
               height: '200px',
               width: '100%',

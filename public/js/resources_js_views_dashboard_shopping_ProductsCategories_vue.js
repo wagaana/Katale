@@ -399,7 +399,7 @@ var render = function render() {
           }
         }, [_c("td", [_c("img", {
           attrs: {
-            src: item.logo,
+            src: item.url,
             width: "30px",
             height: "30px"
           }
@@ -504,7 +504,7 @@ var render = function render() {
     }
   }, [_vm._v("\n        " + _vm._s(_vm.activeCategory.title) + "\n      ")]), _vm._v(" "), _c("v-card-title", [_c("v-card", {
     style: {
-      "background-image": "url(".concat(_vm.activeCategory.logo, ")"),
+      "background-image": "url(".concat(_vm.activeCategory.url, ")"),
       "background-repeat": "no-repeat",
       height: "200px",
       width: "100%",
