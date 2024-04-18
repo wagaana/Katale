@@ -285,7 +285,7 @@ var render = function render() {
       }
     }, [_c("v-card", {
       style: {
-        "background-image": "".concat(fileUpload.url),
+        "background-image": "url(".concat(fileUpload.url, ")"),
         "background-repeat": "no-repeat",
         height: "200px",
         width: "100%",

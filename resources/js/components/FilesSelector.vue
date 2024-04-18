@@ -54,7 +54,7 @@
                         <v-col cols="12">
                           <v-card
                             :style="{
-                              'background-image': `${fileUpload.url}`,
+                              'background-image': `url(${fileUpload.url})`,
                               'background-repeat': 'no-repeat',
                               height: '200px',
                               width: '100%',
