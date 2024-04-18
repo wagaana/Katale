@@ -892,7 +892,7 @@ var render = function render() {
       }
     }, [_c("v-card", {
       style: {
-        "background-image": "url(".concat(_vm.uploads).concat(fileUpload.path, ")"),
+        "background-image": "".concat(fileUpload.url),
         "background-repeat": "no-repeat",
         height: "200px",
         width: "100%",
@@ -1016,7 +1016,7 @@ var render = function render() {
       }
     }, [_c("v-card", {
       style: {
-        "background-image": "url(".concat(_vm.uploads).concat(fileUpload.path, ")"),
+        "background-image": "".concat(fileUpload.url),
         "background-repeat": "no-repeat",
         height: "200px",
         width: "100%",
