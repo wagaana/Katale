@@ -552,15 +552,17 @@ class MarketplceController extends Controller
                 'users.user_name',
                 'currencies.code AS currency'
             ]);
+            */
 
         $formatedProducts = [];
-        foreach ($products as $product) {
+        foreach ($category->products as $product) {
             $images = [];
 
             foreach ($product->images as $image) {
                 $image['url'] = getFileLink(@$image);
                 array_push($images, $image);
             }
+            $product['currency'] = $product->code;
             $product->images = $images;
             $product->has_variant = $product->has_variant === 0 ? false : true;
             $product->stock_notification = $product->stock_notification === 0 ? false : true;
@@ -601,13 +603,6 @@ class MarketplceController extends Controller
         return response()->json(array(
             'status' => 200,
             'data' => $formatedProducts,
-            'message' => 'OK'
-        ), 200);
-        */
-
-        return response()->json(array(
-            'status' => 200,
-            'data' => $category,
             'message' => 'OK'
         ), 200);
     }
