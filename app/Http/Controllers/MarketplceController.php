@@ -523,21 +523,6 @@ class MarketplceController extends Controller
 
     public function loadCategoryProducts($categoryId)
     {
-        $category = Category::with('products', 'children.products')->find($categoryId);
-
-        // You can now access the products of the category and its subcategories like this:
-        foreach ($category->products as $product) {
-            // Access product details
-        }
-
-        foreach ($category->children as $childCategory) {
-            foreach ($childCategory->products as $product) {
-                // Access product details
-            }
-        }
-
-
-        /*
         $products = Product::whereHas('category', function ($query) use ($categoryId) {
             $query->where('id', $categoryId);
         })
@@ -552,10 +537,9 @@ class MarketplceController extends Controller
                 'users.user_name',
                 'currencies.code AS currency'
             ]);
-            */
 
         $formatedProducts = [];
-        foreach ($category->products as $product) {
+        foreach ($products as $product) {
             $images = [];
 
             foreach ($product->images as $image) {
