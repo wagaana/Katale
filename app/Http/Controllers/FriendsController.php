@@ -704,8 +704,8 @@ class FriendsController extends Controller
 
             $label = "Customer Care";
             $description = "This is an official chat room for service related inquiries";
-            $logoUrl = "images/logo.png";
-            $coverUrl = "images/default_cover.jpg";
+            $logoUrl = env('APP_URL') . "/images/logo.png";
+            $coverUrl = env('APP_URL') . "/images/default_cover.jpg";
 
             $id = $this->get_uuid();
             $chat = new Chat;
@@ -750,8 +750,8 @@ class FriendsController extends Controller
 
             $label = "Customer Care";
             $description = "This is an official chat room for service related inquiries";
-            $logoUrl = "images/logo.png";
-            $coverUrl = "images/default_cover.jpg";
+            $logoUrl = env('APP_URL') . "/images/logo.png";
+            $coverUrl = env('APP_URL') . "/images/default_cover.jpg";
 
             $id = $this->get_uuid();
             $chat = new Chat;
