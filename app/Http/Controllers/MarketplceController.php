@@ -226,6 +226,67 @@ class MarketplceController extends Controller
         }
     }
 
+    public function loadBrandProducts($brandId)
+    {
+        $products = Product::where('products.brand_id', $brandId)
+            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+            ->join('users', 'sellers.user_id', '=', 'users.id')
+            ->join('currencies', 'users.country', '=', 'currencies.country_code')
+            ->orderBy('id', 'desc')
+            ->get(['products.*', 'users.user_name', 'currencies.code AS currency']);
+
+        $formatedProducts = [];
+        foreach ($products as $product) {
+            $images = [];
+
+            foreach ($product->images as $image) {
+                $image['url'] = getFileLink(@$image);
+                array_push($images, $image);
+            }
+            $product->images = $images;
+            $product->has_variant = $product->has_variant === 0 ? false : true;
+            $product->stock_notification = $product->stock_notification === 0 ? false : true;
+            $product->is_featured = $product->is_featured === 0 ? false : true;
+            $product->is_featured_on_seller = $product->is_featured_on_seller === 0 ? false : true;
+            $product->is_classified = $product->is_classified === 0 ? false : true;
+            $product->is_wholesale = $product->is_wholesale === 0 ? false : true;
+            $product->is_digital = $product->is_digital === 0 ? false : true;
+            $product->is_refundable = $product->is_refundable === 0 ? false : true;
+            $product->todays_deal = $product->todays_deal === 0 ? false : true;
+            $product->is_approved = $product->is_approved === 0 ? false : true;
+            $product->is_catalog = $product->is_catalog === 0 ? false : true;
+
+            $attribute_sets = [];
+            foreach ($product->attribute_sets as $attribute_set) {
+                $attribute_set_id = $attribute_set['id'];
+                $attribute_set['attributes'] = ProductAttribute::where('product_id', $product->id)->where('attribute_id', $attribute_set_id)->get();
+                array_push($attribute_sets, $attribute_set);
+            }
+            $product->attribute_sets = $attribute_sets;
+
+            $product['specifications'] = ProductSpecification::where('product_specifications.productId', $product->id)
+                ->join('specifications', 'product_specifications.specificationId', '=', 'specifications.id')
+                ->orderBy('product_specifications.id', 'desc')
+                ->get(['product_specifications.*', 'specifications.title']);
+
+            $product['category'] = Category::where('id', $product->category_id)->first();
+            $product['brand'] = Brand::where('id', $product->brand_id)->first();
+
+            try {
+                //$product->packaging_config = json_decode($product->packaging_config, true);
+            } catch (\Exception $e) {
+            }
+
+            array_push($formatedProducts, $product);
+        }
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $formatedProducts,
+            'message' => 'OK'
+        ), 200);
+    }
+
     public function submitShopingAttributeSet(Request $request)
     {
         $attributeSet = new AttributeSet;
