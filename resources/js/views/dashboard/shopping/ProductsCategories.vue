@@ -44,7 +44,7 @@
 
               <v-autocomplete
                 v-model="categoryCompose.parent_id"
-                :items="getShopingCategories"
+                :items="getShopingMainAndParentCategories"
                 label="Select Parent"
                 item-text="title"
                 item-value="id"
@@ -175,11 +175,16 @@ export default {
 
   beforeCreate() {
     this.$store.dispatch("loadShopingCategories");
+    this.$store.dispatch("loadShopingMainAndParentCategories");
   },
 
   computed: {
-    ...mapState(["shopingCategories"]),
-    ...mapGetters(["getShopingCategories", "messageAlert"]),
+    ...mapState(["shopingCategories", "shopingMainAndParentCategories"]),
+    ...mapGetters([
+      "getShopingCategories",
+      "getShopingMainAndParentCategories",
+      "messageAlert",
+    ]),
   },
 
   watch: {
@@ -191,6 +196,7 @@ export default {
           text: val.body,
         });
         this.$store.dispatch("loadShopingCategories");
+        this.$store.dispatch("loadShopingMainAndParentCategories");
       }
     },
   },

@@ -324,6 +324,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('submitShopingCategory', [MarketplceController::class, 'submitShopingCategory']);
     Route::get('loadShopingCategories', [MarketplceController::class, 'loadShopingCategories']);
     Route::delete('deleteShopingCategory/{categoryId}', [MarketplceController::class, 'deleteShopingCategory']);
+    Route::get('loadShopingMainAndParentCategories', [MarketplceController::class, 'loadShopingMainAndParentCategories']);
 
     Route::post('submitShopingBrand', [MarketplceController::class, 'submitShopingBrand']);
     Route::get('loadShopingBrands', [MarketplceController::class, 'loadShopingBrands']);

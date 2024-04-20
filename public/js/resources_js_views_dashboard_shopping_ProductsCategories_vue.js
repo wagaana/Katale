@@ -159,8 +159,9 @@ function _toPrimitive(input, hint) { if (_typeof(input) !== "object" || input ==
   },
   beforeCreate: function beforeCreate() {
     this.$store.dispatch("loadShopingCategories");
+    this.$store.dispatch("loadShopingMainAndParentCategories");
   },
-  computed: _objectSpread(_objectSpread({}, (0,vuex__WEBPACK_IMPORTED_MODULE_2__.mapState)(["shopingCategories"])), (0,vuex__WEBPACK_IMPORTED_MODULE_2__.mapGetters)(["getShopingCategories", "messageAlert"])),
+  computed: _objectSpread(_objectSpread({}, (0,vuex__WEBPACK_IMPORTED_MODULE_2__.mapState)(["shopingCategories", "shopingMainAndParentCategories"])), (0,vuex__WEBPACK_IMPORTED_MODULE_2__.mapGetters)(["getShopingCategories", "getShopingMainAndParentCategories", "messageAlert"])),
   watch: {
     messageAlert: function messageAlert(val) {
       if (val != null) {
@@ -170,6 +171,7 @@ function _toPrimitive(input, hint) { if (_typeof(input) !== "object" || input ==
           text: val.body
         });
         this.$store.dispatch("loadShopingCategories");
+        this.$store.dispatch("loadShopingMainAndParentCategories");
       }
     }
   },
@@ -439,7 +441,7 @@ var render = function render() {
     }
   }), _vm._v(" "), _c("v-autocomplete", {
     attrs: {
-      items: _vm.getShopingCategories,
+      items: _vm.getShopingMainAndParentCategories,
       label: "Select Parent",
       "item-text": "title",
       "item-value": "id",

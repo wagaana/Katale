@@ -3,6 +3,7 @@ import
   places_api_key,
   submitShopingCategory,
   loadShopingCategories,
+  loadShopingMainAndParentCategories,
   deleteShopingCategory,
   submitShopingBrand,
   loadShopingBrands,
@@ -61,6 +62,7 @@ const marketplce = {
 
   state: {
     shopingCategories: [],
+    shopingMainAndParentCategories: [],
     shopingBrands: [],
     shopingAttributeSets: [],
     specifications: [],
@@ -83,6 +85,7 @@ const marketplce = {
 
   getters: {
     getShopingCategories: state => state.shopingCategories,
+    getShopingMainAndParentCategories: state => state.shopingMainAndParentCategories,
     getShopingBrands: state => state.shopingBrands,
     getShopingAttributeSets: state => state.shopingAttributeSets,
     getSpecifications: state => state.specifications,
@@ -107,6 +110,11 @@ const marketplce = {
     addShopingCategories ( state, payload )
     {
       state.shopingCategories = payload
+    },
+
+    addShopingMainAndParentCategories ( state, payload )
+    {
+      state.shopingMainAndParentCategories = payload
     },
 
     addShopingBrands ( state, payload )
@@ -267,6 +275,34 @@ const marketplce = {
           if ( response.status === 200 )
           {
             commit( "addShopingCategories", payAuthData.data );
+          }
+        } );
+    },
+
+    loadShopingMainAndParentCategories ( {
+      commit,
+      dispatch
+    } )
+    {
+      const currentAuthData = localStorage.getItem( 'authData' ) != null ? JSON.parse( localStorage.getItem( 'authData' ) ) : null;
+
+      var config = {
+        method: 'get',
+        url: loadShopingMainAndParentCategories,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + currentAuthData.access_token
+        },
+        data: {}
+      };
+
+      axios( config )
+        .then( response =>
+        {
+          const payAuthData = response.data;
+          if ( response.status === 200 )
+          {
+            commit( "addShopingMainAndParentCategories", payAuthData.data );
           }
         } );
     },

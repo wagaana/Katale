@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->bigInteger('parent_id')->nullable();
             $table->string('parent')->nullable();
-            $table->integer('position')->nullable();
+            $table->integer('position')->default(0)->nullable();
+            //$table->enum('position', ['main', 'parent', 'child'])->nullable();
             $table->integer('ordering')->default(0);
             $table->string('slug');
             $table->text('title')->nullable();

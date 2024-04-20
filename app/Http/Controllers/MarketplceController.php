@@ -64,8 +64,12 @@ class MarketplceController extends Controller
         $shopingCategories = new Category;
         $shopingCategories->slug = $slug;
         try {
-            $shopingCategories->parent = $request->input('parent_id') != null ? Category::where('id', $request->input('parent_id'))->first()->title : NULL;
-            $shopingCategories->parent_id = $request->input('parent_id');
+            if ($request->input('parent_id') != null) {
+                $parentCategory = Category::where('id', $request->input('parent_id'))->first();
+                $shopingCategories->parent = $request->input('parent_id') != null ? $parentCategory->title : NULL;
+                $shopingCategories->parent_id = $parentCategory->id;
+                $shopingCategories->position = $parentCategory->position + 1;
+            }
         } catch (\Exception $ex) {
         }
         $shopingCategories->title = $request->input('title');
@@ -95,6 +99,20 @@ class MarketplceController extends Controller
     public function loadShopingMainCategories()
     {
         $data = Category::where('parent_id', NULL)->orderBy('id', 'desc')->get();
+
+        return response()->json(array(
+            'status' => 200,
+            'data' => $data,
+            'message' => 'OK'
+        ), 200);
+    }
+
+    public function loadShopingMainAndParentCategories()
+    {
+        $data = Category::where(function ($q) {
+            $q->where('position', 0)
+                ->orWhere('position', 1);
+        })->orderBy('id', 'desc')->get();
 
         return response()->json(array(
             'status' => 200,
@@ -523,66 +541,101 @@ class MarketplceController extends Controller
 
     public function loadCategoryProducts($categoryId)
     {
-        $products = Product::whereHas('category', function ($query) use ($categoryId) {
-            $query->where('id', $categoryId);
-        })
-            ->with(['category', 'category.parent', 'category.children', 'seller.user'])
-            ->join('sellers', 'products.seller_id', '=', 'sellers.id')
-            ->join('users', 'sellers.user_id', '=', 'users.id')
-            ->join('currencies', 'users.country', '=', 'currencies.country_code')
-            ->orderBy('products.id', 'desc')
-            ->get([
-                'products.*',
-                'sellers.id as seller_id',
-                'users.user_name',
-                'currencies.code AS currency'
-            ]);
+        $category = Category::where('id', $categoryId)->first();
+
+        $formatedCategories = [];
+        if (isset($category)) {
+            array_push($formatedCategories, $category);
+            if ($category->position = 0) {
+                $mainCategories = Category::where('parent_id', $category->id)->get();
+                foreach ($mainCategories as $mainCategory) {
+                    if ($mainCategory->position = 1) {
+                        $parentCategories = Category::where('parent_id', $mainCategory->id)->get();
+                        foreach ($parentCategories as $parentCategory) {
+                            if ($parentCategory->position = 2) {
+                                $childCategories = Category::where('parent_id', $parentCategory->id)->get();
+                                foreach ($childCategories as $childCategory) {
+                                    array_push($formatedCategories, $childCategory);
+                                }
+                            }
+                            array_push($formatedCategories, $parentCategory);
+                        }
+                    }
+                    array_push($formatedCategories, $mainCategory);
+                }
+            } else if ($category->position = 1) {
+                $parentCategories = Category::where('parent_id', $categoryId)->get();
+                foreach ($parentCategories as $parentCategory) {
+                    if ($parentCategory->position = 2) {
+                        $childCategories = Category::where('parent_id', $parentCategory->id)->get();
+                        foreach ($childCategories as $childCategory) {
+                            array_push($formatedCategories, $childCategory);
+                        }
+                    }
+                    array_push($formatedCategories, $parentCategory);
+                }
+            }
+        }
 
         $formatedProducts = [];
-        foreach ($products as $product) {
-            $images = [];
+        foreach ($formatedCategories as $formatedCategory) {
+            $products = Product::where('products.category_id', $formatedCategory->id)
+                ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+                ->join('users', 'sellers.user_id', '=', 'users.id')
+                ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                ->orderBy('products.id', 'desc')
+                ->get([
+                    'products.*',
+                    'sellers.id as seller_id',
+                    'users.user_name',
+                    'currencies.code AS currency'
+                ]);
 
-            foreach ($product->images as $image) {
-                $image['url'] = getFileLink(@$image);
-                array_push($images, $image);
+            foreach ($products as $product) {
+                $images = [];
+
+                foreach ($product->images as $image) {
+                    $image['url'] = getFileLink(@$image);
+                    array_push($images, $image);
+                }
+                $product['seller_id'] = $product->code;
+                $product['currency'] = $product->code;
+                $product->images = $images;
+                $product->has_variant = $product->has_variant === 0 ? false : true;
+                $product->stock_notification = $product->stock_notification === 0 ? false : true;
+                $product->is_featured = $product->is_featured === 0 ? false : true;
+                $product->is_featured_on_seller = $product->is_featured_on_seller === 0 ? false : true;
+                $product->is_classified = $product->is_classified === 0 ? false : true;
+                $product->is_wholesale = $product->is_wholesale === 0 ? false : true;
+                $product->is_digital = $product->is_digital === 0 ? false : true;
+                $product->is_refundable = $product->is_refundable === 0 ? false : true;
+                $product->todays_deal = $product->todays_deal === 0 ? false : true;
+                $product->is_approved = $product->is_approved === 0 ? false : true;
+                $product->is_catalog = $product->is_catalog === 0 ? false : true;
+
+                $attribute_sets = [];
+                foreach ($product->attribute_sets as $attribute_set) {
+                    $attribute_set_id = $attribute_set['id'];
+                    $attribute_set['attributes'] = ProductAttribute::where('product_id', $product->id)->where('attribute_id', $attribute_set_id)->get();
+                    array_push($attribute_sets, $attribute_set);
+                }
+                $product->attribute_sets = $attribute_sets;
+
+                $product['specifications'] = ProductSpecification::where('product_specifications.productId', $product->id)
+                    ->join('specifications', 'product_specifications.specificationId', '=', 'specifications.id')
+                    ->orderBy('product_specifications.id', 'desc')
+                    ->get(['product_specifications.*', 'specifications.title']);
+
+                $product['category'] = Category::where('id', $product->category_id)->first();
+                $product['brand'] = Brand::where('id', $product->brand_id)->first();
+
+                try {
+                    //$product->packaging_config = json_decode($product->packaging_config, true);
+                } catch (\Exception $e) {
+                }
+
+                array_push($formatedProducts, $product);
             }
-            $product['seller_id'] = $product->code;
-            $product['currency'] = $product->code;
-            $product->images = $images;
-            $product->has_variant = $product->has_variant === 0 ? false : true;
-            $product->stock_notification = $product->stock_notification === 0 ? false : true;
-            $product->is_featured = $product->is_featured === 0 ? false : true;
-            $product->is_featured_on_seller = $product->is_featured_on_seller === 0 ? false : true;
-            $product->is_classified = $product->is_classified === 0 ? false : true;
-            $product->is_wholesale = $product->is_wholesale === 0 ? false : true;
-            $product->is_digital = $product->is_digital === 0 ? false : true;
-            $product->is_refundable = $product->is_refundable === 0 ? false : true;
-            $product->todays_deal = $product->todays_deal === 0 ? false : true;
-            $product->is_approved = $product->is_approved === 0 ? false : true;
-            $product->is_catalog = $product->is_catalog === 0 ? false : true;
-
-            $attribute_sets = [];
-            foreach ($product->attribute_sets as $attribute_set) {
-                $attribute_set_id = $attribute_set['id'];
-                $attribute_set['attributes'] = ProductAttribute::where('product_id', $product->id)->where('attribute_id', $attribute_set_id)->get();
-                array_push($attribute_sets, $attribute_set);
-            }
-            $product->attribute_sets = $attribute_sets;
-
-            $product['specifications'] = ProductSpecification::where('product_specifications.productId', $product->id)
-                ->join('specifications', 'product_specifications.specificationId', '=', 'specifications.id')
-                ->orderBy('product_specifications.id', 'desc')
-                ->get(['product_specifications.*', 'specifications.title']);
-
-            $product['category'] = Category::where('id', $product->category_id)->first();
-            $product['brand'] = Brand::where('id', $product->brand_id)->first();
-
-            try {
-                //$product->packaging_config = json_decode($product->packaging_config, true);
-            } catch (\Exception $e) {
-            }
-
-            array_push($formatedProducts, $product);
         }
 
         return response()->json(array(

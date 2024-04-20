@@ -170,6 +170,7 @@ export const deleteFile = '/api/deleteFile/';
 
 export const submitShopingCategory = '/api/submitShopingCategory';
 export const loadShopingCategories = '/api/loadShopingCategories';
+export const loadShopingMainAndParentCategories = '/api/loadShopingMainAndParentCategories';
 export const deleteShopingCategory = '/api/deleteShopingCategory/';
 export const submitShopingBrand = '/api/submitShopingBrand';
 export const loadShopingBrands = '/api/loadShopingBrands';
