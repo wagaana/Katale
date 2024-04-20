@@ -268,6 +268,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('loadRecommendedProducts', [MarketplceController::class, 'loadRecommendedProducts']);
     Route::get('loadProductDetailsBySlug/{slug}', [MarketplceController::class, 'loadProductDetailsBySlug']);
     Route::get('loadBrandProducts/{brandId}', [MarketplceController::class, 'loadBrandProducts']);
+    Route::get('searchProducts/{queryText}', [MarketplceController::class, 'searchProducts']);
     Route::get('loadViewedProducts', [MarketplceController::class, 'loadViewedProducts']);
     Route::post('addToWishlist', [MarketplceController::class, 'addToWishlist']);
     Route::get('loadWishlist', [MarketplceController::class, 'loadWishlist']);
