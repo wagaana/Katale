@@ -8,6 +8,7 @@ use App\Models\AdvertBalance;
 use App\Models\Advert;
 use App\Models\Seller;
 use App\Models\User;
+use App\Models\SalerBalance;
 use Illuminate\Support\Facades\DB;
 
 class BalancesController extends Controller
@@ -79,6 +80,35 @@ class BalancesController extends Controller
             ->update([
                 'balance' => BalancesController::getSellerAdvertBalance($seller->id),
             ]);
+        return $balanceResult;
+    }
+
+    public static function addMonetToSellerBalance($from, $gross, $fee, $net, $netToSend, $transactionId, $senderCurrency)
+    {
+        $data = [
+            ['userId' => $from, 'gross' => -(float) $gross, 'fee' => -(float) $fee, 'net' => -(float) $net, 'transactionId' => $transactionId, 'currency' => $senderCurrency, 'updated_at' => now(), 'created_at' => now()],
+        ];
+
+        $balanceResult = Balace::insert($data);
+        DB::table('users')
+            ->where(['id' => $from])
+            ->update([
+                'wallet_balance' => BalancesController::getUserAccountBalance($from),
+            ]);
+        /*
+        $seller = Seller::where('user_id', $from)->first();
+
+        $data = [
+            ['shop_id' => $seller->id, 'gross' => (float) $netToSend, 'fee' => 0, 'net' => (float) $netToSend, 'transactionId' => $transactionId, 'currency' => $senderCurrency, 'updated_at' => now(), 'created_at' => now()],
+        ];
+
+        $balanceResult = SalerBalance::insert($data);
+        DB::table('sellers')
+            ->where(['id' => $seller->id])
+            ->update([
+                'pending_balance' => BalancesController::getSellerBalance($seller->id),
+            ]);
+            */
         return $balanceResult;
     }
 
@@ -160,6 +190,16 @@ class BalancesController extends Controller
             WHEN gross>0
                 THEN gross
         END) AS balance FROM advert_balances WHERE shop_id=:shop_id", ['shop_id' => $shop_id]))->first()->balance;
+    }
+
+    public static function getSellerBalance($shop_id)
+    {
+        return collect(DB::select("SELECT SUM(CASE
+            WHEN gross<0
+                THEN net
+            WHEN gross>0
+                THEN gross
+        END) AS balance FROM saler_balances WHERE shop_id=:shop_id", ['shop_id' => $shop_id]))->first()->balance;
     }
 
     public static function getUserAccountBalance($userId)

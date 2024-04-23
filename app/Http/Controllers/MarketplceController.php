@@ -37,6 +37,7 @@ use App\Models\Advert;
 use App\Models\Transaction;
 use App\Models\DeliveryRequest;
 use App\Models\DeliveryRequestPackage;
+use App\Models\Setting;
 
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\UsersController;
@@ -3663,10 +3664,345 @@ class MarketplceController extends Controller
         $order->user_id = $userId;
         $order->save();
 
+        if ($request->input('payment_type') === "WALLET") {
+            $this->payOrderWithMyWallet($invoice_id, $priceData['TotalAmmountToPay']);
+        } else if ($request->input('payment_type') === "MOBILE_MONEY") {
+            $this->payOrderWithPaymentGateway($invoice_id, $priceData['TotalAmmountToPay'], $request->input('payment_method'), $request->input('payment_method_currency'), $request->input('mobilemoney_phone'));
+        }
+
         return response()->json(array(
             'status' => 200,
             'message' => 'OK'
         ), 200);
+    }
+
+    public function payOrderWithMyWallet($transactionId, $netToSend)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $accountBalance = BalancesController::getUserAccountBalance($userId);
+
+        $currencySetting = Setting::where('setting_name', 'currency')->first();
+
+        $recieverCurrency = Currency::where("code", $currencySetting->setting_value)->first();
+        $senderCurrency = Currency::where("country_code", $user->country)->first();
+
+        // Calculate exchange rate from sender's currency to UGX
+        $sender_to_ugx_exchange_rate = (1 / $senderCurrency->buy);
+
+        // Calculate exchange rate from UGX to receiver's currency
+        $ugx_to_receiver_exchange_rate = $recieverCurrency->sell;
+
+        // Calculate the overall exchange rate from sender's currency to receiver's currency
+        $exchange_rate = $sender_to_ugx_exchange_rate * $ugx_to_receiver_exchange_rate;
+
+        $fee = $senderCurrency->transactionFee + (($netToSend / 100) * $recieverCurrency->conversionChargePercentage);
+
+        // Calculate gross amount in the receiver's currency
+        $grossToCharge = ($netToSend - $fee) * $exchange_rate;
+
+        // Calculate gross amount in the sender's currency
+        $netToCharge = ($netToSend + $fee) * $exchange_rate;
+
+        // Calculate gross amount in the sender's currency
+        $feeToCharge = $fee * $exchange_rate;
+
+        // Use the receiver's currency code
+        $currency = $senderCurrency->code;
+
+        if ($netToCharge <= $accountBalance && $netToCharge > $feeToCharge) {
+            $transaction = new Transaction;
+            $transaction->id = $transactionId;
+            $transaction->userId = $userId;
+            $transaction->recieverId = 0;
+            $transaction->gross = $grossToCharge;
+            $transaction->fee = $feeToCharge;
+            $transaction->net = $netToCharge;
+            $transaction->exchange_rate = $exchange_rate;
+            $transaction->senderCurrencyTxnFee = $recieverCurrency->transactionFee;
+            $transaction->conversionChargePercentage = $recieverCurrency->conversionChargePercentage;
+            $transaction->provider = 'SYSTEM';
+            $transaction->status = 'COMPLETED';
+            $transaction->requestId = $transactionId;
+            $transaction->description = 'Shop advertising balance topup';
+            $transaction->transactionKey = 'TRANSFER';
+            $transaction->externalId = $transactionId;
+            $transaction->currency = $currency;
+            $transaction->save();
+
+            BalancesController::addMonetToSellerBalance($userId, $grossToCharge, $feeToCharge, $netToCharge, $netToSend, $transactionId, $senderCurrency->code);
+
+            Order::where('invoice_id', $transactionId)
+                ->update([
+                    'payment_status' => 'paid'
+                ]);
+
+            return response()->json(array(
+                'status' => 200,
+                'message' => 'OK',
+                'data' => array(
+                    'payment_method' => 'SYSTEM',
+                    'message' => 'We have sent you an email with our bank information.'
+                )
+            ), 200);
+        } else {
+            if ($netToCharge <= $feeToCharge) {
+                return response()->json(array(
+                    'status' => 421,
+                    'message' => 'Minimum Transaction should be above ' . $feeToCharge
+                ), 421);
+            } else {
+                return response()->json(array(
+                    'status' => 422,
+                    'message' => 'Insuficient Balance'
+                ), 422);
+            }
+        }
+    }
+
+    public function payOrderWithPaymentGateway($transactionId, $netToSend, $paymentMethod, $paymentMethodCurrency, $conditionValue)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+
+        $currencySetting = Setting::where('setting_name', 'currency')->first();
+
+        $recieverCurrency = Currency::where("code", $currencySetting->setting_value)->first();
+        $senderCurrency = Currency::where("country_code", $user->country)->first();
+
+        // Calculate exchange rate from sender's currency to UGX
+        $sender_to_ugx_exchange_rate = (1 / $senderCurrency->buy);
+
+        // Calculate exchange rate from UGX to receiver's currency
+        $ugx_to_receiver_exchange_rate = $recieverCurrency->sell;
+
+        // Calculate the overall exchange rate from sender's currency to receiver's currency
+        $exchange_rate = $sender_to_ugx_exchange_rate * $ugx_to_receiver_exchange_rate;
+
+        $fee = $senderCurrency->transactionFee + (($netToSend / 100) * $recieverCurrency->conversionChargePercentage);
+
+        // Calculate gross amount in the receiver's currency
+        $gross = ($netToSend - $fee) * $exchange_rate;
+
+        // Use the receiver's currency code
+        $currency = $senderCurrency->code;
+
+        $description = "Order payment";
+
+        $response = array();
+        switch ($paymentMethod) {
+            case "PAYPAL":
+                $data = DB::table('payment_method_currencies')->where('code', $paymentMethodCurrency)->first();
+                $transactionalFeesPercentage = $data->chargePercentage;
+
+                $fee = 0;
+                if ($gross > $data->maxDepositLimit) {
+                    $response = array(
+                        'status' => 422,
+                        'message' => 'The maximum allowed ammount is ' . $data->maxDepositLimit
+                    );
+                    return response()->json($response, $response['status']);
+                }
+
+                if ($gross < $data->minDepositLimit) {
+                    $response = array(
+                        'status' => 422,
+                        'message' => 'The minimum allowed ammount is ' . $data->minDepositLimit
+                    );
+                    return response()->json($response, $response['status']);
+                }
+                if ($data->depositChargesEnabled == 'true') {
+                    $fee = $data->transactionFee + (($gross / 100) * $transactionalFeesPercentage);
+                }
+
+                if ($data->depositTariffEnabled == 'true') {
+                    $tariffPlan = PaymentMethodTariffController::calculatePaymentMethodCurrencyTariffPlan($gross, $data->code);
+                    $fee += $tariffPlan->sending;
+                }
+
+                $net = $fee + $gross;
+                $currency = $data->currency;
+
+                $requestPayload = PayPalController::initPaymentRequest($gross, $fee, $net, $description, $currency);
+                $requestPayload = json_decode($requestPayload, true);
+                $requestId = $requestPayload['id'];
+                $requestStatus = $requestPayload['status'];
+                $links = $requestPayload['links'];
+
+                $approveLink = '';
+                for ($i = 0; $i < sizeof($links); $i++) {
+                    $parameter = $links[$i];
+                    if ($parameter['rel'] === "approve") {
+                        $approveLink = $parameter['href'];
+                    }
+                }
+
+                $transaction = new Transaction;
+                $transaction->id = $transactionId;
+                $transaction->userId = $userId;
+                $transaction->recieverId = 0;
+                $transaction->gross = $gross;
+                $transaction->fee = $fee;
+                $transaction->net = $net;
+                $transaction->provider = $paymentMethod;
+                $transaction->status = $requestStatus;
+                $transaction->requestId = $requestId;
+                $transaction->description = $description;
+                $transaction->transactionKey = 'CREDIT';
+                $transaction->externalId = $transactionId;
+                $transaction->currency = $currency;
+                $transaction->save();
+
+                $response = array(
+                    'status' => 200,
+                    'approveLink' => $approveLink,
+                    'message' => 'OK',
+                    'data' => array(
+                        'payment_method' => $paymentMethod,
+                        'message' => $approveLink
+                    )
+                );
+                break;
+
+            case "UG_MTN_MOMO":
+                $data = DB::table('payment_method_currencies')->where('code', $paymentMethodCurrency)->first();
+                $transactionalFeesPercentage = $data->chargePercentage;
+
+                $fee = 0;
+                if ($gross > $data->maxDepositLimit) {
+                    $response = array(
+                        'status' => 422,
+                        'message' => 'The maximum allowed ammount is ' . $data->maxDepositLimit
+                    );
+                    return response()->json($response, $response['status']);
+                }
+
+                if ($gross < $data->minDepositLimit) {
+                    $response = array(
+                        'status' => 422,
+                        'message' => 'The minimum allowed ammount is ' . $data->minDepositLimit
+                    );
+                    return response()->json($response, $response['status']);
+                }
+                if ($data->depositChargesEnabled == 'true') {
+                    $fee = $data->transactionFee + (($gross / 100) * $transactionalFeesPercentage);
+                }
+                if ($data->depositTariffEnabled == 'true') {
+                    $tariffPlan = PaymentMethodTariffController::calculatePaymentMethodCurrencyTariffPlan($gross, $data->code);
+                    $fee += $tariffPlan->sending;
+                }
+
+                $net = $fee + $gross;
+                $currency = $data->currency;
+
+                $requestPayload = MtnMomoController::request_to_pay($conditionValue, $currency, $net, "Orders", "Nsiimbi", $transactionId);
+                $requestId = $requestPayload['id'];
+                $requestStatus = $requestPayload['status'];
+
+                $transaction = new Transaction;
+                $transaction->id = $transactionId;
+                $transaction->userId = $userId;
+                $transaction->recieverId = 0;
+                $transaction->gross = $gross;
+                $transaction->fee = $fee;
+                $transaction->net = $net;
+                $transaction->provider = $paymentMethod;
+                $transaction->status = $requestStatus;
+                $transaction->requestId = $requestId;
+                $transaction->description = $description;
+                $transaction->transactionKey = 'CREDIT';
+                $transaction->externalId = $transactionId;
+                $transaction->currency = $currency;
+                $transaction->save();
+
+                $response = array(
+                    'status' => 200,
+                    'status' => 200,
+                    'message' => 'OK',
+                    'response' => $requestPayload,
+                    'data' => array(
+                        'payment_method' => $paymentMethod,
+                        'message' => $requestPayload['message']
+                    )
+                );
+                break;
+
+            case "UG_AIRTEL_MONEY":
+                $data = DB::table('payment_method_currencies')->where('code', $paymentMethodCurrency)->first();
+                $transactionalFeesPercentage = $data->chargePercentage;
+
+                $fee = 0;
+                if ($gross > $data->maxDepositLimit) {
+                    $response = array(
+                        'status' => 422,
+                        'message' => 'The maximum allowed ammount is ' . $data->maxDepositLimit
+                    );
+                    return response()->json($response, $response['status']);
+                }
+
+                if ($gross < $data->minDepositLimit) {
+                    $response = array(
+                        'status' => 422,
+                        'message' => 'The minimum allowed ammount is ' . $data->minDepositLimit
+                    );
+                    return response()->json($response, $response['status']);
+                }
+                if ($data->depositChargesEnabled == 'true') {
+                    $fee = $data->transactionFee + (($gross / 100) * $transactionalFeesPercentage);
+                }
+                if ($data->depositTariffEnabled == 'true') {
+                    $tariffPlan = PaymentMethodTariffController::calculatePaymentMethodCurrencyTariffPlan($gross, $data->code);
+                    $fee += $tariffPlan->sending;
+                }
+
+                $net = $fee + $gross;
+                $currency = $data->currency;
+
+                $msisdn = preg_replace(
+                    '/\+(?:998|996|995|994|993|992|977|976|975|974|973|972|971|970|968|967|966|965|964|963|962|961|960|886|880|856|855|853|852|850|692|691|690|689|688|687|686|685|683|682|681|680|679|678|677|676|675|674|673|672|670|599|598|597|595|593|592|591|590|509|508|507|506|505|504|503|502|501|500|423|421|420|389|387|386|385|383|382|381|380|379|378|377|376|375|374|373|372|371|370|359|358|357|356|355|354|353|352|351|350|299|298|297|291|290|269|268|267|266|265|264|263|262|261|260|258|257|256|255|254|253|252|251|250|249|248|246|245|244|243|242|241|240|239|238|237|236|235|234|233|232|231|230|229|228|227|226|225|224|223|222|221|220|218|216|213|212|211|98|95|94|93|92|91|90|86|84|82|81|66|65|64|63|62|61|60|58|57|56|55|54|53|52|51|49|48|47|46|45|44\D?1624|44\D?1534|44\D?1481|44|43|41|40|39|36|34|33|32|31|30|27|20|7|1\D?939|1\D?876|1\D?869|1\D?868|1\D?849|1\D?829|1\D?809|1\D?787|1\D?784|1\D?767|1\D?758|1\D?721|1\D?684|1\D?671|1\D?670|1\D?664|1\D?649|1\D?473|1\D?441|1\D?345|1\D?340|1\D?284|1\D?268|1\D?264|1\D?246|1\D?242|1)\D?/',
+                    '',
+                    '+' . $conditionValue
+                );
+                $requestPayload = AirtelMoneyController::merchantPayments($msisdn, $currency, $net, "UG", "Nsiimbi", $transactionId);
+                $requestId = $requestPayload['id'];
+                $requestStatus = $requestPayload['status'];
+
+                $transaction = new Transaction;
+                $transaction->id = $transactionId;
+                $transaction->userId = $userId;
+                $transaction->recieverId = 0;
+                $transaction->gross = $gross;
+                $transaction->fee = $fee;
+                $transaction->net = $net;
+                $transaction->provider = $paymentMethod;
+                $transaction->status = $requestStatus;
+                $transaction->requestId = $requestId;
+                $transaction->description = $description;
+                $transaction->transactionKey = 'CREDIT';
+                $transaction->externalId = $transactionId;
+                $transaction->currency = $currency;
+                $transaction->save();
+
+                $response = array(
+                    'status' => 200,
+                    'status' => 200,
+                    'message' => 'OK',
+                    'response' => $requestPayload,
+                    'data' => array(
+                        'payment_method' => $paymentMethod,
+                        'message' => isset($requestPayload['message']) ? $requestPayload['message'] : "Try Again Later."
+                    )
+                );
+                break;
+
+            default:
+                $response = array(
+                    'status' => 500,
+                    'message' => 'Invalid payment gateway'
+                );
+        }
+        return response()->json($response, $response['status']);
     }
 
     public function fetchOrderHistory()
