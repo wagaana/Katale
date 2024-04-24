@@ -3665,21 +3665,23 @@ class MarketplceController extends Controller
         $order->save();
 
         if ($request->input('payment_type') === "WALLET") {
-            $this->payOrderWithMyWallet($invoice_id, $priceData['TotalAmmountToPay']);
-        } else if ($request->input('payment_type') === "MOBILE_MONEY") {
-            $this->payOrderWithPaymentGateway($invoice_id, $priceData['TotalAmmountToPay'], $request->input('payment_method'), $request->input('payment_method_currency'), $request->input('mobilemoney_phone'));
+            return self::payOrderWithMyWallet($invoice_id);
+        } else /*if ($request->input('payment_type') === "MOBILE_MONEY")*/ {
+            return $this->payOrderWithPaymentGateway($invoice_id, $priceData['TotalAmmountToPay'], $request->input('payment_method'), $request->input('payment_method_currency'), $request->input('mobilemoney_phone'));
         }
-
-        return response()->json(array(
-            'status' => 200,
-            'message' => 'OK'
-        ), 200);
     }
 
-    public function payOrderWithMyWallet($transactionId, $netToSend)
+    public static function payOrderWithMyWallet($transactionId)
     {
         $user = auth()->user();
         $userId = $user->id;
+
+        if (!Order::where('invoice_id', $transactionId)->exists()) {
+            return;
+        }
+
+        $mOrder = Order::where('invoice_id', $transactionId)->first();
+        $netToSend = $mOrder->total_payable;
 
         $accountBalance = BalancesController::getUserAccountBalance($userId);
 
@@ -3761,32 +3763,10 @@ class MarketplceController extends Controller
         }
     }
 
-    public function payOrderWithPaymentGateway($transactionId, $netToSend, $paymentMethod, $paymentMethodCurrency, $conditionValue)
+    public function payOrderWithPaymentGateway($transactionId, $gross, $paymentMethod, $paymentMethodCurrency, $conditionValue)
     {
         $user = auth()->user();
         $userId = $user->id;
-
-        $currencySetting = Setting::where('setting_name', 'currency')->first();
-
-        $recieverCurrency = Currency::where("code", $currencySetting->setting_value)->first();
-        $senderCurrency = Currency::where("country_code", $user->country)->first();
-
-        // Calculate exchange rate from sender's currency to UGX
-        $sender_to_ugx_exchange_rate = (1 / $senderCurrency->buy);
-
-        // Calculate exchange rate from UGX to receiver's currency
-        $ugx_to_receiver_exchange_rate = $recieverCurrency->sell;
-
-        // Calculate the overall exchange rate from sender's currency to receiver's currency
-        $exchange_rate = $sender_to_ugx_exchange_rate * $ugx_to_receiver_exchange_rate;
-
-        $fee = $senderCurrency->transactionFee + (($netToSend / 100) * $recieverCurrency->conversionChargePercentage);
-
-        // Calculate gross amount in the receiver's currency
-        $gross = ($netToSend - $fee) * $exchange_rate;
-
-        // Use the receiver's currency code
-        $currency = $senderCurrency->code;
 
         $description = "Order payment";
 
@@ -3841,7 +3821,7 @@ class MarketplceController extends Controller
                 $transaction = new Transaction;
                 $transaction->id = $transactionId;
                 $transaction->userId = $userId;
-                $transaction->recieverId = 0;
+                $transaction->recieverId = $userId;
                 $transaction->gross = $gross;
                 $transaction->fee = $fee;
                 $transaction->net = $net;
@@ -3903,14 +3883,14 @@ class MarketplceController extends Controller
                 $transaction = new Transaction;
                 $transaction->id = $transactionId;
                 $transaction->userId = $userId;
-                $transaction->recieverId = 0;
+                $transaction->recieverId = $userId;
                 $transaction->gross = $gross;
                 $transaction->fee = $fee;
                 $transaction->net = $net;
                 $transaction->provider = $paymentMethod;
                 $transaction->status = $requestStatus;
                 $transaction->requestId = $requestId;
-                $transaction->description = $description;
+                $transaction->description = $conditionValue;
                 $transaction->transactionKey = 'CREDIT';
                 $transaction->externalId = $transactionId;
                 $transaction->currency = $currency;
@@ -3926,6 +3906,84 @@ class MarketplceController extends Controller
                         'message' => $requestPayload['message']
                     )
                 );
+                break;
+
+            case "BANK_TRANSFER":
+                $data = DB::table('bank_currencies')->where('code', $paymentMethodCurrency)->first();
+                $transactionalFeesPercentage = $data->chargePercentage;
+
+                $fee = 0;
+                if ($gross > $data->maxDepositLimit) {
+                    $response = array(
+                        'status' => 422,
+                        'message' => 'The maximum allowed ammount is ' . $data->maxDepositLimit
+                    );
+                    return response()->json($response, $response['status']);
+                }
+
+                if ($gross < $data->minDepositLimit) {
+                    $response = array(
+                        'status' => 422,
+                        'message' => 'The minimum allowed ammount is ' . $data->minDepositLimit
+                    );
+                    return response()->json($response, $response['status']);
+                }
+
+                if ($data->depositChargesEnabled == 'true') {
+                    $fee = $data->transactionFee + (($gross / 100) * $transactionalFeesPercentage);
+                }
+                if ($data->depositTariffEnabled == 'true') {
+                    $tariffPlan = PaymentMethodTariffController::calculatePaymentMethodCurrencyTariffPlan($gross, $data->code);
+                    $fee += $tariffPlan->sending;
+                }
+
+                $net = $fee + $gross;
+                $currency = $data->currency;
+                $paymentStatus = BankTransferController::capturePaymentStatus($conditionValue);
+
+                if ($paymentStatus['status'] === 'COMPLETED') {
+                    $transaction = new Transaction;
+                    $transaction->id = $transactionId;
+                    $transaction->userId = $userId;
+                    $transaction->recieverId = $userId;
+                    $transaction->gross = $gross;
+                    $transaction->fee = $fee;
+                    $transaction->net = $net;
+                    $transaction->provider = $paymentMethod;
+                    $transaction->status = $paymentStatus['status'];
+                    $transaction->requestId = $transactionId;
+                    $transaction->description = $conditionValue;
+                    $transaction->transactionKey = 'CREDIT';
+                    $transaction->externalId = $transactionId;
+                    $transaction->currency = $currency;
+                    $transaction->save();
+
+                    $senderAcc = UsersController::getSelectedUserProfile($userId);
+                    $recieverAcc = UsersController::getSelectedUserProfile($userId);
+
+                    $recieverCurrency = Currency::where("country_code", $recieverAcc->country)->first();
+                    $senderCurrency = Currency::where("country_code", $senderAcc->country)->first();
+
+                    BalancesController::addTransaction($userId, $userId, $gross, $fee, $net, $transactionId, $senderCurrency->code, $recieverCurrency->code);
+
+                    $response = array(
+                        'status' => 200,
+                        'message' => 'OK',
+                        'data' => array(
+                            'payment_method' => $paymentMethod,
+                            'message' => 'We have sent you an email with our bank information.'
+                        )
+                    );
+                } else {
+                    $response = array(
+                        'status' => 500,
+                        'message' => 'Invalid reference provided.',
+                        'data' => array(
+                            'payment_method' => $paymentMethod,
+                            'message' => 'Invalid reference provided.'
+                        )
+                    );
+                }
                 break;
 
             case "UG_AIRTEL_MONEY":
@@ -3971,14 +4029,14 @@ class MarketplceController extends Controller
                 $transaction = new Transaction;
                 $transaction->id = $transactionId;
                 $transaction->userId = $userId;
-                $transaction->recieverId = 0;
+                $transaction->recieverId = $userId;
                 $transaction->gross = $gross;
                 $transaction->fee = $fee;
                 $transaction->net = $net;
                 $transaction->provider = $paymentMethod;
                 $transaction->status = $requestStatus;
                 $transaction->requestId = $requestId;
-                $transaction->description = $description;
+                $transaction->description = $conditionValue;
                 $transaction->transactionKey = 'CREDIT';
                 $transaction->externalId = $transactionId;
                 $transaction->currency = $currency;

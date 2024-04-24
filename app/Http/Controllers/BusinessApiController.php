@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\BusinessApiRequest;
 use App\Models\Application;
 use App\Models\Transaction;
+use App\Models\Order;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use HTTP_Request2;
@@ -636,63 +637,69 @@ class BusinessApiController extends Controller
 
     public static function updateTransactionStatus($transactionId, $status)
     {
-        $businessApiRequest = BusinessApiRequest::join('applications', 'business_api_requests.applicationId', '=', 'applications.id')
-            ->where('transactionId', $transactionId)
-            ->first([
-                'business_api_requests.*', 'applications.userId AS recieverId', 'applications.id AS appId', 'applications.label',
-                'applications.description', 'applications.imageUrl', 'applications.callbackURL'
-            ]);
+        if (BusinessApiRequest::join('applications', 'business_api_requests.applicationId', '=', 'applications.id')->where('transactionId', $transactionId)->exists()) {
+            $businessApiRequest = BusinessApiRequest::join('applications', 'business_api_requests.applicationId', '=', 'applications.id')
+                ->where('transactionId', $transactionId)
+                ->first([
+                    'business_api_requests.*', 'applications.userId AS recieverId', 'applications.id AS appId', 'applications.label',
+                    'applications.description', 'applications.imageUrl', 'applications.callbackURL'
+                ]);
 
-        $transaction = Transaction::where('id', $transactionId)->first();
-        $userId = $transaction->userId;
+            $transaction = Transaction::where('id', $transactionId)->first();
+            $userId = $transaction->userId;
 
-        if ($businessApiRequest !== null) {
-            $recieverId = $businessApiRequest->recieverId;
-            $net = (float) $businessApiRequest->ammount;
-            $loadStebleCurency = PaymentMethodsController::loadStebleCurency();
-            $fee = $loadStebleCurency['data']->transactionFee;
-            $gross = $net - $fee;
-            $currency = $loadStebleCurency['data']->currency;
+            if ($businessApiRequest !== null) {
+                $recieverId = $businessApiRequest->recieverId;
+                $net = (float) $businessApiRequest->ammount;
+                $loadStebleCurency = PaymentMethodsController::loadStebleCurency();
+                $fee = $loadStebleCurency['data']->transactionFee;
+                $gross = $net - $fee;
+                $currency = $loadStebleCurency['data']->currency;
 
 
-            $accountBalance = BalancesController::getUserAccountBalance($userId);
-            if ($net <= $accountBalance && $net > $fee) {
+                $accountBalance = BalancesController::getUserAccountBalance($userId);
+                if ($net <= $accountBalance && $net > $fee) {
 
-                $senderAcc = UsersController::getSelectedUserProfile($userId);
-                $recieverAcc = UsersController::getSelectedUserProfile($recieverId);
+                    $senderAcc = UsersController::getSelectedUserProfile($userId);
+                    $recieverAcc = UsersController::getSelectedUserProfile($recieverId);
 
-                $recieverCurrency = Currency::where("country_code", $recieverAcc->country)->first();
-                $senderCurrency = Currency::where("country_code", $senderAcc->country)->first();
+                    $recieverCurrency = Currency::where("country_code", $recieverAcc->country)->first();
+                    $senderCurrency = Currency::where("country_code", $senderAcc->country)->first();
 
-                $result = BalancesController::addTransaction($userId, $businessApiRequest->recieverId, $gross, $fee, $net, $transactionId, $senderCurrency->code, $recieverCurrency->code);
-                if ($result) {
-                    BusinessApiRequest::where('transactionId', $transactionId)
-                        ->update([
-                            'status' => $status
-                        ]);
-                    self::sendCallBackToClient($businessApiRequest->callback !== null ? $businessApiRequest->callback : $businessApiRequest->callbackURL, $net, $businessApiRequest->externalKey, $status, $businessApiRequest->request_token);
-                }
-            } else {
-                if ($net <= $fee) {
-                    return array(
-                        'status' => 200,
-                        'message' => 'Minimum Transaction should be above ' . $fee,
-                        'data' => array(
-                            'payment_method' => 'SYSTEM',
-                            'message' => 'We have sent you an email with our bank information.'
-                        )
-                    );
+                    $result = BalancesController::addTransaction($userId, $businessApiRequest->recieverId, $gross, $fee, $net, $transactionId, $senderCurrency->code, $recieverCurrency->code);
+                    if ($result) {
+                        BusinessApiRequest::where('transactionId', $transactionId)
+                            ->update([
+                                'status' => $status
+                            ]);
+                        self::sendCallBackToClient($businessApiRequest->callback !== null ? $businessApiRequest->callback : $businessApiRequest->callbackURL, $net, $businessApiRequest->externalKey, $status, $businessApiRequest->request_token);
+                    }
                 } else {
-                    return array(
-                        'status' => 200,
-                        'message' => 'Insuficient Balance',
-                        'data' => array(
-                            'payment_method' => 'SYSTEM',
-                            'message' => 'We have sent you an email with our bank information.'
-                        )
-                    );
+                    if ($net <= $fee) {
+                        return array(
+                            'status' => 200,
+                            'message' => 'Minimum Transaction should be above ' . $fee,
+                            'data' => array(
+                                'payment_method' => 'SYSTEM',
+                                'message' => 'We have sent you an email with our bank information.'
+                            )
+                        );
+                    } else {
+                        return array(
+                            'status' => 200,
+                            'message' => 'Insuficient Balance',
+                            'data' => array(
+                                'payment_method' => 'SYSTEM',
+                                'message' => 'We have sent you an email with our bank information.'
+                            )
+                        );
+                    }
                 }
             }
+        }
+
+        if (Order::where('invoice_id', $transactionId)->exists()) {
+            MarketplceController::payOrderWithMyWallet($transactionId);
         }
     }
 
