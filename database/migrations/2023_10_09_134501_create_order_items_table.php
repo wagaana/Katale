@@ -20,7 +20,7 @@ return new class extends Migration
             $table->double('price')->nullable();
             $table->double('tax')->nullable();
             $table->double('discount')->nullable();
-            $table->string('coupon_discount')->nullable()->comment('will be json data {"coupon_code" : "BLACK5", "discount" : 5}');
+            $table->string('coupon_discount')->nullable();
             $table->integer('order_quantity')->default(1);
             $table->bigInteger('product_referral_code')->nullable();
             $table->tinyInteger('is_refundable')->default(0)->comment('1 => can be refunded');

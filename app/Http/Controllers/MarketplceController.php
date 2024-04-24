@@ -3673,15 +3673,14 @@ class MarketplceController extends Controller
 
     public static function payOrderWithMyWallet($transactionId)
     {
-        $user = auth()->user();
-        $userId = $user->id;
-
         if (!Order::where('invoice_id', $transactionId)->exists()) {
             return;
         }
 
         $mOrder = Order::where('invoice_id', $transactionId)->first();
         $netToSend = $mOrder->total_payable;
+        $userId = $mOrder->user_id;
+        $user = User::wherewhere('id', $userId)->first();
 
         $accountBalance = BalancesController::getUserAccountBalance($userId);
 
@@ -3739,6 +3738,17 @@ class MarketplceController extends Controller
                 ->update([
                     'payment_status' => 'paid'
                 ]);
+
+            User::wherewhere('id', $userId)->update([
+                'pending_orders' => $user->pending_orders + 1
+            ]);
+
+            /*
+            Seller::wherewhere('id', $userId)->update([
+                'pending_orders' => $user->pending_orders + 1
+            ]);
+            deliveries_to_me
+            */
 
             return response()->json(array(
                 'status' => 200,
