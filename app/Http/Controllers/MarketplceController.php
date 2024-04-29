@@ -3975,6 +3975,7 @@ class MarketplceController extends Controller
                     $senderCurrency = Currency::where("country_code", $senderAcc->country)->first();
 
                     BalancesController::addTransaction($userId, $userId, $gross, $fee, $net, $transactionId, $senderCurrency->code, $recieverCurrency->code);
+                    self::payOrderWithMyWallet($transactionId);
 
                     $response = array(
                         'status' => 200,
