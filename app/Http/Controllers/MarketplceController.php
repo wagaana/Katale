@@ -3739,16 +3739,51 @@ class MarketplceController extends Controller
                     'payment_status' => 'paid'
                 ]);
 
-            User::wherewhere('id', $userId)->update([
-                'pending_orders' => $user->pending_orders + 1
-            ]);
+            $orderSellers = OrderItem::where('order_items.invoice_id', $transactionId)
+                ->join('products', 'products.id', '=', 'order_items.product_id')
+                ->join('sellers', 'products.seller_id', '=', 'sellers.id')
+                ->join('users', 'sellers.user_id', '=', 'users.id')
+                ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                ->groupBy('products.seller_id')
+                ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
+                ->get([
+                    'sellers.*',
+                ]);
 
-            /*
-            Seller::wherewhere('id', $userId)->update([
-                'pending_orders' => $user->pending_orders + 1
+            foreach ($orderSellers as $seller) {
+                $sellerOrders = OrderItem::join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
+                    ->join('products', 'products.id', '=', 'order_items.product_id')
+                    ->join('users', 'orders.user_id', '=', 'users.id')
+                    ->where('products.seller_id', $seller->id)
+                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                    ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
+                    ->groupBy('order_items.invoice_id')
+                    ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
+                    ->get([
+                        'orders.*',
+                        'users.user_name',
+                        DB::raw('MAX(addresses.address) AS billing_address_label'),
+                        DB::raw('MAX(currencies.code) AS currency'),
+                        DB::raw('SUM(order_items.order_quantity) as order_quantity'),
+                    ]);
+
+                Seller::wherewhere('id', $seller->id)->update([
+                    'pending_orders' => $sellerOrders->count()
+                ]);
+            }
+
+            $userOrders = OrderItem::where('order_items.user_id', $userId)
+                ->join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
+                ->join('users', 'orders.user_id', '=', 'users.id')
+                ->join('currencies', 'users.country', '=', 'currencies.country_code')
+                ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
+                ->groupBy('order_items.invoice_id')
+                ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
+                ->get();
+
+            User::wherewhere('id', $userId)->update([
+                'pending_orders' => $userOrders->count()
             ]);
-            deliveries_to_me
-            */
 
             return response()->json(array(
                 'status' => 200,
