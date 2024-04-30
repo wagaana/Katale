@@ -3738,7 +3738,7 @@ class MarketplceController extends Controller
                 ->update([
                     'payment_status' => 'paid'
                 ]);
-
+            /*
             $orderSellers = OrderItem::where('order_items.invoice_id', $transactionId)
                 ->join('products', 'products.id', '=', 'order_items.product_id')
                 ->join('sellers', 'products.seller_id', '=', 'sellers.id')
@@ -3771,7 +3771,7 @@ class MarketplceController extends Controller
                     'pending_orders' => sizeof($sellerOrders)
                 ]);
             }
-
+*/
             $userOrders = OrderItem::where('order_items.user_id', $userId)
                 ->join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
                 ->join('users', 'orders.user_id', '=', 'users.id')
