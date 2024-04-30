@@ -3750,7 +3750,7 @@ class MarketplceController extends Controller
                 ]);
 
             foreach ($orderSellers as $seller) {
-                $sellerOrders = OrderItem::join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
+                $sellerOrderItems = OrderItem::join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
                     ->join('products', 'products.id', '=', 'order_items.product_id')
                     ->join('users', 'orders.user_id', '=', 'users.id')
                     ->where('products.seller_id', $seller->id)
@@ -3759,7 +3759,7 @@ class MarketplceController extends Controller
                     ->groupBy('order_items.invoice_id')
                     ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
                     ->get([
-                        'orders.*',
+                        'order_items.*',
                         'users.user_name',
                         DB::raw('MAX(addresses.address) AS billing_address_label'),
                         DB::raw('MAX(currencies.code) AS currency'),
@@ -3767,9 +3767,26 @@ class MarketplceController extends Controller
                     ]);
 
                 Seller::where('id', $seller->id)->update([
-                    'pending_orders' => sizeof($sellerOrders)
+                    'pending_orders' => sizeof($sellerOrderItems)
+                ]);
+
+                $pendingAmmount = 0;
+                foreach ($sellerOrderItems as $sellerOrderItem) {
+                    $price = $sellerOrderItem->price;
+                    $tax = $sellerOrderItem->tax;
+                    $discount = $sellerOrderItem->discount;
+                    $coupon_discount = $sellerOrderItem->coupon_discount;
+                    $order_quantity = $sellerOrderItem->order_quantity;
+                    $delivery_cost = $sellerOrderItem->delivery_cost;
+
+                    $pendingAmmount += (($price + $tax + $delivery_cost) - ($discount + $coupon_discount) * $order_quantity);
+                }
+
+                Seller::where('id', $seller->id)->update([
+                    'pending_balance' => $pendingAmmount
                 ]);
             }
+
             $userOrders = OrderItem::where('order_items.user_id', $userId)
                 ->join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
                 ->join('users', 'orders.user_id', '=', 'users.id')
