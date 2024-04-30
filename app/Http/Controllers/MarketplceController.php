@@ -3800,6 +3800,12 @@ class MarketplceController extends Controller
                 'pending_orders' => sizeof($userOrders)
             ]);
 
+            $userDeliveryRequests = DeliveryRequest::where('reciever_id', $userId)->get();
+
+            User::where('id', $userId)->update([
+                'deliveries_to_me' => sizeof($userDeliveryRequests)
+            ]);
+
             return response()->json(array(
                 'status' => 200,
                 'message' => 'OK',
