@@ -3800,13 +3800,13 @@ class MarketplceController extends Controller
                 ]);
 
             foreach ($deliveryCompanyOrderItems as $deliveryCompanyOrderItem) {
-                $deliveryCompanyOrders = OrderItem::join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
+                $deliveryCompanyOrders = OrderItem::where('order_items.invoice_id', $transactionId)
+                    ->join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
                     ->join('products', 'products.id', '=', 'order_items.product_id')
                     ->join('users', 'orders.user_id', '=', 'users.id')
                     ->where('order_items.delivery_company_id', $deliveryCompanyOrderItem->delivery_company_id)
                     ->join('currencies', 'users.country', '=', 'currencies.country_code')
                     ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
-                    ->groupBy('order_items.invoice_id')
                     ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
                     ->get([
                         'order_items.*',
