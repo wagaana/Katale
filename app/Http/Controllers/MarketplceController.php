@@ -3766,7 +3766,7 @@ class MarketplceController extends Controller
                         DB::raw('SUM(order_items.order_quantity) as order_quantity'),
                     ]);
 
-                Seller::wherewhere('id', $seller->id)->update([
+                Seller::where('id', $seller->id)->update([
                     'pending_orders' => sizeof($sellerOrders)
                 ]);
             }
@@ -3779,7 +3779,7 @@ class MarketplceController extends Controller
                 ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
                 ->get();
 
-            User::wherewhere('id', $userId)->update([
+            User::where('id', $userId)->update([
                 'pending_orders' => sizeof($userOrders)
             ]);
 
