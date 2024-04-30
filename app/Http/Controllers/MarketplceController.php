@@ -3768,7 +3768,7 @@ class MarketplceController extends Controller
                     ]);
 
                 Seller::wherewhere('id', $seller->id)->update([
-                    'pending_orders' => $sellerOrders->count()
+                    'pending_orders' => sizeof($sellerOrders)
                 ]);
             }
 
@@ -3782,7 +3782,7 @@ class MarketplceController extends Controller
                 ->get();
 
             User::wherewhere('id', $userId)->update([
-                'pending_orders' => $userOrders->count()
+                'pending_orders' => sizeof($userOrders)
             ]);
 
             return response()->json(array(
