@@ -3353,7 +3353,7 @@ class MarketplceController extends Controller
             ), 422);
         }
 
-        if (!Address::where('id', $request->input('addressId'))->where('user_id', $userId)->exists()) {
+        if (!Address::where('id', (int)$request->input('addressId'))->where('user_id', $userId)->exists()) {
             return response()->json(array(
                 'status' => 500,
                 'message' => 'Invalid Address was provided.'
