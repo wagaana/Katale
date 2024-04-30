@@ -3806,12 +3806,9 @@ class MarketplceController extends Controller
                     ->join('users', 'orders.user_id', '=', 'users.id')
                     ->where('order_items.delivery_company_id', $deliveryCompanyOrderItem->delivery_company_id)
                     ->join('currencies', 'users.country', '=', 'currencies.country_code')
-                    ->join('addresses', 'orders.billing_address', '=', 'addresses.id')
-                    ->orderByDesc(DB::raw('MAX(order_items.created_at)'))
                     ->get([
                         'order_items.*',
                         'users.user_name',
-                        DB::raw('MAX(addresses.address) AS billing_address_label'),
                         DB::raw('MAX(currencies.code) AS currency'),
                         DB::raw('SUM(order_items.order_quantity) as order_quantity'),
                     ]);
