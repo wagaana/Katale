@@ -3354,7 +3354,10 @@ class MarketplceController extends Controller
         }
 
         if (!Address::where('id', (int)$request->input('addressId'))->where('user_id', $userId)->exists()) {
-            return response()->json($request->all(), 500);
+            return response()->json(array(
+                'status' => 500,
+                'message' => 'Invalid Address was provided.'
+            ), 500);
         }
 
         $products = Cart::where('carts.user_id', $userId)
