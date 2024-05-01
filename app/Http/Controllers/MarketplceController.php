@@ -3811,8 +3811,14 @@ class MarketplceController extends Controller
                             ->orWhere('delivery_status', 'accepted');
                     })->get();
 
+                $pendingAmmount = 0;
+                foreach ($deliveryCompanyOrders as $deliveryCompanyOrder) {
+                    $pendingAmmount += $deliveryCompanyOrder->delivery_cost;
+                }
+
                 DeliveryCompany::where('id', $deliveryCompanyOrderItem->delivery_company_id)->update([
-                    'pending_shipments' => sizeof($deliveryCompanyOrders)
+                    'pending_shipments' => sizeof($deliveryCompanyOrders),
+                    'pending_balance' => $pendingAmmount,
                 ]);
             }
 
