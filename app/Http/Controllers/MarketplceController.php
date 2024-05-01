@@ -3801,15 +3801,10 @@ class MarketplceController extends Controller
 
             foreach ($deliveryCompanyOrderItems as $deliveryCompanyOrderItem) {
                 $deliveryCompanyOrders = OrderItem::where('order_items.invoice_id', $transactionId)
-                    ->join('orders', 'orders.invoice_id', '=', 'order_items.invoice_id')
                     ->join('products', 'products.id', '=', 'order_items.product_id')
-                    ->join('users', 'orders.user_id', '=', 'users.id')
                     ->where('order_items.delivery_company_id', $deliveryCompanyOrderItem->delivery_company_id)
-                    ->join('currencies', 'users.country', '=', 'currencies.country_code')
                     ->get([
                         'order_items.*',
-                        'users.user_name',
-                        DB::raw('MAX(currencies.code) AS currency'),
                         DB::raw('SUM(order_items.order_quantity) as order_quantity'),
                     ]);
 
