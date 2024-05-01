@@ -3805,7 +3805,11 @@ class MarketplceController extends Controller
 
             foreach ($deliveryCompanyOrderItems as $deliveryCompanyOrderItem) {
                 $deliveryCompanyOrders = DeliveryRequest::where('delivery_company_id', $deliveryCompanyOrderItem->delivery_company_id)
-                    ->where('delivery_type', '!=', 'seller')->get();
+                    ->where('delivery_type', '!=', 'seller')
+                    ->where(function ($q) {
+                        $q->where('delivery_status', 'pending')
+                            ->orWhere('delivery_status', 'accepted');
+                    })->get();
 
                 DeliveryCompany::where('id', $deliveryCompanyOrderItem->delivery_company_id)->update([
                     'pending_shipments' => sizeof($deliveryCompanyOrders)
