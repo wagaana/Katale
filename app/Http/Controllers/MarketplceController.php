@@ -3651,7 +3651,7 @@ class MarketplceController extends Controller
         $order->shipping_address = $request->input('addressId');
         $order->payment_type = $request->input('payment_type');
         $order->payment_method = $request->input('payment_method');
-        $order->mobilemoney_phone = $request->input('mobilemoney_phone');
+        $order->mobilemoney_phone = $request->input('conditionValue');
 
         $order->sub_total = $priceData['Subtotal'];
         $order->discount = $priceData['DiscountTotal'];
@@ -3667,7 +3667,7 @@ class MarketplceController extends Controller
         if ($request->input('payment_type') === "WALLET") {
             return self::payOrderWithMyWallet($invoice_id);
         } else /*if ($request->input('payment_type') === "MOBILE_MONEY")*/ {
-            return $this->payOrderWithPaymentGateway($invoice_id, $priceData['TotalAmmountToPay'], $request->input('payment_method'), $request->input('payment_method_currency'), $request->input('mobilemoney_phone'));
+            return $this->payOrderWithPaymentGateway($invoice_id, $priceData['TotalAmmountToPay'], $request->input('payment_method'), $request->input('payment_method_currency'), $request->input('conditionValue'));
         }
     }
 
