@@ -3789,6 +3789,10 @@ class MarketplceController extends Controller
             }
 
             $deliveryCompanyOrderItems = OrderItem::where('order_items.invoice_id', $transactionId)
+                ->where(function ($q) {
+                    $q->where('order_items.delivery_type', 'route')
+                        ->orWhere('order_items.delivery_type', 'express');
+                })
                 ->join('products', 'products.id', '=', 'order_items.product_id')
                 ->join('sellers', 'products.seller_id', '=', 'sellers.id')
                 ->join('users', 'sellers.user_id', '=', 'users.id')
@@ -3800,13 +3804,7 @@ class MarketplceController extends Controller
                 ]);
 
             foreach ($deliveryCompanyOrderItems as $deliveryCompanyOrderItem) {
-                $deliveryCompanyOrders = OrderItem::where('order_items.invoice_id', $transactionId)
-                    ->join('products', 'products.id', '=', 'order_items.product_id')
-                    ->where('order_items.delivery_company_id', $deliveryCompanyOrderItem->delivery_company_id)
-                    ->get([
-                        'order_items.*',
-                        DB::raw('SUM(order_items.order_quantity) as order_quantity'),
-                    ]);
+                $deliveryCompanyOrders = DeliveryRequest::where('delivery_company_id', $deliveryCompanyOrderItem->delivery_company_id)->get();
 
                 DeliveryCompany::where('id', $deliveryCompanyOrderItem->delivery_company_id)->update([
                     'pending_shipments' => sizeof($deliveryCompanyOrders)
