@@ -3813,7 +3813,7 @@ class MarketplceController extends Controller
 
                 $pendingDeliveryFee = 0;
                 foreach ($deliveryCompanyOrders as $deliveryCompanyOrder) {
-                    $pendingDeliveryFee += $deliveryCompanyOrder->delivery_cost;
+                    $pendingDeliveryFee += $deliveryCompanyOrder->shipping_cost;
                 }
 
                 DeliveryCompany::where('id', $deliveryCompanyOrderItem->delivery_company_id)->update([
