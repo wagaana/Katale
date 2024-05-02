@@ -458,7 +458,7 @@ class MarketplceController extends Controller
             ), 500);
         }
 
-        $seller = Seller::where('user_id', $userId)->first();
+        $sellerAccount = Seller::where('user_id', $userId)->first();
 
         $slug = lcfirst(preg_replace('/[.,\s]/', '-', $request->input('name')));
         $i = 0;
@@ -475,7 +475,7 @@ class MarketplceController extends Controller
         $product->category_id = $request->input('categoryId');
         $product->current_stock = $request->input('current_stock');
         $product->user_id = $userId;
-        $product->seller_id = $seller->id;
+        $product->seller_id = $sellerAccount->id;
         $product->created_by = $userId;
         $product->slug = $slug;
         $product->name = $request->input('name');
