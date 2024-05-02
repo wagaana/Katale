@@ -721,7 +721,6 @@ class MarketplceController extends Controller
                     $image['url'] = getFileLink(@$image);
                     array_push($images, $image);
                 }
-                $product['currency'] = $product->code;
                 $product->images = $images;
                 $product->has_variant = $product->has_variant === 0 ? false : true;
                 $product->stock_notification = $product->stock_notification === 0 ? false : true;
