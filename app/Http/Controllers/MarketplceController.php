@@ -3832,11 +3832,14 @@ class MarketplceController extends Controller
                 'pending_orders' => sizeof($userOrders)
             ]);
 
-            $userDeliveryRequests = DeliveryRequest::where('reciever_id', $userId)->get();
+            $userDeliveryRequestsToMe = DeliveryRequest::where('reciever_id', $userId)->get();
+            $userDeliveryRequestsFromMe = DeliveryRequest::where('sender_id', $userId)->get();
 
             User::where('id', $userId)->update([
-                'deliveries_to_me' => sizeof($userDeliveryRequests)
+                'deliveries_to_me' => sizeof($userDeliveryRequestsToMe),
+                'deliveries_from_me' => sizeof($userDeliveryRequestsFromMe)
             ]);
+
 
             return response()->json(array(
                 'status' => 200,
@@ -6651,7 +6654,7 @@ class MarketplceController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
-        $deliveryRequests = DeliveryRequest::where('reciever_id', $userId)->get();
+        $deliveryRequests = DeliveryRequest::where('sender_id', $userId)->get();
 
         $requestsData = array();
         foreach ($deliveryRequests as $deliveryRequest) {
