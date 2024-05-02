@@ -6651,7 +6651,7 @@ class MarketplceController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
-        $deliveryRequests = DeliveryRequest::where('sender_id', $userId)->get();
+        $deliveryRequests = DeliveryRequest::where('reciever_id', $userId)->get();
 
         $requestsData = array();
         foreach ($deliveryRequests as $deliveryRequest) {
