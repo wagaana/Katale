@@ -3840,6 +3840,15 @@ class MarketplceController extends Controller
                 'deliveries_from_me' => sizeof($userDeliveryRequestsFromMe)
             ]);
 
+            $mOrderItems = OrderItem::where('invoice_id', $transactionId)->get();
+            foreach ($mOrderItems as $mOrderItem) {
+                $mProduct = Product::where('id', $mOrderItem->product_id)->first();
+                Product::where('id', $mOrderItem->product_id)->update([
+                    'total_sale' => $mProduct->total_sale + $mOrderItem->order_quantity
+                ]);
+            }
+
+            Cart::where('user_id', $userId)->delete();
 
             return response()->json(array(
                 'status' => 200,
