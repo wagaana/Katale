@@ -143,11 +143,11 @@ var render = function render() {
           }
         }, [_c("td", [_vm._v(_vm._s(item.id))]), _vm._v(" "), _c("td", [_c("img", {
           attrs: {
-            src: "".concat(_vm.uploads).concat(item.profile_picture),
+            src: "".concat(item.profile_picture),
             width: "30px",
             height: "30px"
           }
-        })]), _vm._v(" "), _c("td", [_vm._v(_vm._s(item.name))]), _vm._v(" "), _c("td", [_vm._v(_vm._s(item.email))]), _vm._v(" "), _c("td", [_vm._v("\n                            " + _vm._s(item.gender) + "\n                        ")]), _vm._v(" "), _c("td", [_vm._v(_vm._s(item.email_verified))]), _vm._v(" "), _c("td", [_vm._v(_vm._s(item.created_at))])])];
+        })]), _vm._v(" "), _c("td", [_vm._v(_vm._s(item.name))]), _vm._v(" "), _c("td", [_vm._v(_vm._s(item.email))]), _vm._v(" "), _c("td", [_vm._v("\n              " + _vm._s(item.gender) + "\n            ")]), _vm._v(" "), _c("td", [_vm._v(_vm._s(item.email_verified))]), _vm._v(" "), _c("td", [_vm._v(_vm._s(item.created_at))])])];
       }
     }])
   })], 1), _vm._v(" "), _c("v-dialog", {
@@ -175,7 +175,7 @@ var render = function render() {
     }
   })], 1), _vm._v(" "), _c("v-card-text", [_c("p", [_vm._v(_vm._s(_vm.activeProfile.email))]), _vm._v(" "), _c("span", {
     staticClass: "success--text subtitle-1"
-  }, [_vm._v("\n                            Created: " + _vm._s(_vm.activeProfile.created_at) + "\n                        ")])])], 1), _vm._v(" "), _c("v-divider"), _vm._v(" "), _c("v-card-actions", {
+  }, [_vm._v("\n              Created: " + _vm._s(_vm.activeProfile.created_at) + "\n            ")])])], 1), _vm._v(" "), _c("v-divider"), _vm._v(" "), _c("v-card-actions", {
     staticClass: "pa-5"
   }, [_c("v-btn", {
     attrs: {

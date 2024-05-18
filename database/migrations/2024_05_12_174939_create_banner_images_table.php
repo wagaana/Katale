@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('slider_images', function (Blueprint $table) {
+        Schema::create('banner_images', function (Blueprint $table) {
             $table->id();
             $table->integer('fileId');
             $table->string('redirect_url');
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('slider_images');
+        Schema::dropIfExists('banner_images');
     }
 };
