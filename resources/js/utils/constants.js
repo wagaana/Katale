@@ -226,66 +226,67 @@ export const submitPackageType = '/api/submitPackageType'
 export const deletePackageType = '/api/deletePackageType/'
 export const loadPackageTypes = '/api/loadPackageTypes'
 
-export const mainMenuItems = [ {
-    title: "Home",
-    href: "/admin/home",
-    icon: "mdi-home-outline"
-},
-{
-    title: "Campaigns",
-    href: "/admin/marketingCampaigns",
-    icon: "mdi-chat-outline"
-},
-{
-    title: "Live Chat",
-    href: "/admin/ccInbox",
-    icon: "mdi-email"
-},
-{
-    title: "Requests",
-    href: "/admin/requests",
-    icon: "mdi-palette-swatch"
-},
-{
-    title: "Translations",
-    href: "/admin/translations",
-    icon: "mdi-translate",
-},
-{
-    title: "Shopping",
-    href: "/admin/shopping",
-    icon: "mdi-shopping"
-},
-{
-    title: "Files & Media",
-    href: "/admin/files",
-    icon: "mdi-file",
-},
-{
-    title: "Promo Codes",
-    href: "/admin/promoCodes",
-    icon: "mdi-tag",
-},
-{
-    title: "Payment Methods",
-    href: "/admin/paymentMethods",
-    icon: "mdi-currency-usd",
-},
-{
-    title: "Suported Banks",
-    href: "/admin/suportedBanks",
-    icon: "mdi-database-settings-outline",
-},
-{
-    title: "Customers",
-    href: "/admin/customers",
-    icon: "mdi-account-search-outline"
-},
-{
-    title: "Settings",
-    href: "/admin/settings",
-    icon: "mdi-cog"
-},
+export const mainMenuItems = [
+    {
+        title: "Home",
+        href: "/admin/home",
+        icon: "mdi-home-outline"
+    },
+    {
+        title: "Campaigns",
+        href: "/admin/marketingCampaigns",
+        icon: "mdi-chat-outline"
+    },
+    {
+        title: "Live Chat",
+        href: "/admin/ccInbox",
+        icon: "mdi-email"
+    },
+    {
+        title: "Requests",
+        href: "/admin/requests",
+        icon: "mdi-palette-swatch"
+    },
+    {
+        title: "Translations",
+        href: "/admin/translations",
+        icon: "mdi-translate",
+    },
+    {
+        title: "Shopping",
+        href: "/admin/shopping",
+        icon: "mdi-shopping"
+    },
+    {
+        title: "Files & Media",
+        href: "/admin/files",
+        icon: "mdi-file",
+    },
+    {
+        title: "Promo Codes",
+        href: "/admin/promoCodes",
+        icon: "mdi-tag",
+    },
+    {
+        title: "Payment Methods",
+        href: "/admin/paymentMethods",
+        icon: "mdi-currency-usd",
+    },
+    {
+        title: "Suported Banks",
+        href: "/admin/suportedBanks",
+        icon: "mdi-database-settings-outline",
+    },
+    {
+        title: "Customers",
+        href: "/admin/customers",
+        icon: "mdi-account-search-outline"
+    },
+    {
+        title: "Settings",
+        href: "/admin/settings",
+        icon: "mdi-cog"
+    },
 ];
 
 export const languages_options = [ {
